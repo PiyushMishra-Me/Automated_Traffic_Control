@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# YOLO/model files
+*.pt
+*.onnx
+
+# Uploaded/generated videos
+data/uploads/
+data/annotated/
+*.mp4
+*.avi
+*.mov
+
+# MongoDB/local data
+*.db
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
