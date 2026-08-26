@@ -6,6 +6,8 @@ import ApproachFeedCard from './components/ApproachFeedCard';
 import JunctionOverview from './components/JunctionOverview';
 import AnalyticsHistory from './components/AnalyticsHistory';
 import CountingLineEditor from './components/CountingLineEditor';
+import SignalSimulator from './components/SignalSimulator';
+import DashboardHero from './components/DashboardHero';
 import { api } from './services/api';
 
 export default function App() {
@@ -58,6 +60,12 @@ export default function App() {
     <div className="app-container">
       <Navbar />
 
+      <DashboardHero
+        junction={selectedJunctionData}
+        state={junctionState}
+        onRefresh={() => { fetchJunctions(); fetchJunctionState(selectedJunction); setAnalyticsRefresh((current) => current + 1); }}
+      />
+
       <div className="top-controls-grid">
         <JunctionSelector 
           junctions={junctions}
@@ -77,13 +85,8 @@ export default function App() {
         />
       </div>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>Approach Camera Feeds & Local Analytics</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>
-            (Independent Feed Per Road Approach)
-          </span>
-        </h2>
+      <section className="workspace-section">
+        <div className="section-heading"><div><span className="eyebrow">Live workspace</span><h2>Approach intelligence</h2></div><p>Review the latest processed video for each approach.</p></div>
 
         <div className="approaches-grid">
           <ApproachFeedCard 
@@ -103,9 +106,10 @@ export default function App() {
             state={junctionState?.west} 
           />
         </div>
-      </div>
+      </section>
 
       <JunctionOverview junctionState={junctionState} />
+      <SignalSimulator junctionId={selectedJunction} refreshKey={analyticsRefresh} />
       <AnalyticsHistory junctionId={selectedJunction} refreshKey={analyticsRefresh} />
     </div>
   );

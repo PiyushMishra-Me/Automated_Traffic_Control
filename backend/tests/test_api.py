@@ -10,7 +10,7 @@ def test_root_endpoint():
     res = client.get("/")
     assert res.status_code == 200
     data = res.json()
-    assert data["phase"] == 2
+    assert data["phase"] == 3
     assert data["status"] == "online"
 
 def test_list_junctions():
@@ -55,3 +55,13 @@ def test_counting_line_calibration_and_analytics_history():
     assert summary.status_code == 200
     assert summary.json()["observations"] >= 1
     assert summary.json()["peak_vehicle_count"] >= 6
+
+def test_signal_recommendation_simulation():
+    response = client.get("/api/junctions/J-01/signal-recommendation")
+    assert response.status_code == 200
+    recommendation = response.json()
+    assert recommendation["is_simulation"] is True
+    assert recommendation["recommended_phase"] in {"NORTH_SOUTH_GREEN", "EAST_WEST_GREEN", "ALL_RED"}
+    simulated = client.post("/api/junctions/J-01/signal-simulation", json={"current_phase": "ALL_RED"})
+    assert simulated.status_code == 200
+    assert simulated.json()["junction_id"] == "J-01"

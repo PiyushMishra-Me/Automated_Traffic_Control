@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState
+from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState, SignalRecommendation, SignalSimulationRequest
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.core.analytics.junction_aggregator import JunctionAggregator
+from backend.core.control.adaptive_signal import AdaptiveSignalController
 
 router = APIRouter(prefix="/api/junctions", tags=["Junctions"])
 
@@ -45,3 +46,26 @@ def get_junction_traffic_state(junction_id: str):
             pass
 
     return JunctionAggregator.aggregate(junction_id, approach_states)
+
+def _current_junction_state(junction_id: str) -> JunctionTrafficState:
+    raw_states = traffic_repo.get_all_latest_for_junction(junction_id)
+    states = {}
+    for approach, data in raw_states.items():
+        try:
+            states[approach] = ApproachTrafficState(**data)
+        except Exception:
+            pass
+    return JunctionAggregator.aggregate(junction_id, states)
+
+@router.get("/{junction_id}/signal-recommendation", response_model=SignalRecommendation)
+def get_signal_recommendation(junction_id: str):
+    if not junction_repo.get_junction(junction_id):
+        raise HTTPException(status_code=404, detail="Junction not found")
+    return AdaptiveSignalController.recommend(_current_junction_state(junction_id))
+
+@router.post("/{junction_id}/signal-simulation", response_model=SignalRecommendation)
+def simulate_signal_recommendation(junction_id: str, payload: SignalSimulationRequest):
+    if not junction_repo.get_junction(junction_id):
+        raise HTTPException(status_code=404, detail="Junction not found")
+    # The request documents the simulator's current phase for UI clients; no hardware state is changed.
+    return AdaptiveSignalController.recommend(_current_junction_state(junction_id))

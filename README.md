@@ -110,6 +110,15 @@ Dashboard UI: `http://localhost:5173`
 - `GET /api/analytics/junction/{junction_id}/history?approach=NORTH&limit=50` returns latest-first completed-video observations.
 - `GET /api/analytics/junction/{junction_id}/summary?approach=NORTH` returns aggregate operational metrics.
 
+## Phase 3 adaptive signal simulator
+
+Phase 3 is a decision-support simulator, not a traffic-light controller. It scores each approach using active vehicles, estimated queue, density, and traffic level; then recommends either a North/South or East/West green phase. The response includes a bounded recommended green duration, the mandatory yellow/all-red transition durations, and congestion alerts.
+
+- `GET /api/junctions/{junction_id}/signal-recommendation` returns the current safe simulation recommendation.
+- `POST /api/junctions/{junction_id}/signal-simulation` runs the same calculation explicitly for the dashboard simulator.
+
+No physical controller is contacted or changed by either endpoint.
+
 ## Scope and safety
 
 This application processes uploaded, recorded traffic video. It does not yet connect to live cameras or operate physical traffic lights. Any future signal-control integration should use a simulator, manual override, fail-safe state, authorization, and a jurisdiction-approved controller interface.

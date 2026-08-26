@@ -7,8 +7,8 @@ from backend.api.routes_analytics import router as analytics_router
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Phase 2: Traffic monitoring, historical analytics, and camera calibration",
-    version="2.0.0"
+    description="Phase 3: Traffic monitoring, analytics, and adaptive signal simulation",
+    version="3.0.0"
 )
 
 # Enable CORS for local React development
@@ -29,7 +29,7 @@ app.include_router(analytics_router)
 def root():
     return {
         "system": settings.APP_NAME,
-        "phase": 2,
+        "phase": 3,
         "status": "online",
         "endpoints": {
             "docs": "/docs",

@@ -34,6 +34,21 @@ export const api = {
     return res.json();
   },
 
+  async getSignalRecommendation(junctionId) {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-recommendation`);
+    if (!res.ok) throw new Error('Failed to fetch signal recommendation');
+    return res.json();
+  },
+
+  async simulateSignal(junctionId, currentPhase = 'ALL_RED') {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-simulation`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_phase: currentPhase }),
+    });
+    if (!res.ok) throw new Error('Failed to run signal simulation');
+    return res.json();
+  },
+
   // Videos
   async uploadVideo(junctionId, approach, file) {
     const formData = new FormData();

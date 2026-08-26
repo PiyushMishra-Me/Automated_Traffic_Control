@@ -15,6 +15,18 @@ class TrafficLevelEnum(str, Enum):
     HIGH = "HIGH"
     VERY_HIGH = "VERY HIGH"
 
+
+class SignalPhaseEnum(str, Enum):
+    NORTH_SOUTH_GREEN = "NORTH_SOUTH_GREEN"
+    EAST_WEST_GREEN = "EAST_WEST_GREEN"
+    ALL_RED = "ALL_RED"
+
+
+class AlertSeverityEnum(str, Enum):
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+
 class VehicleClassCounts(BaseModel):
     car: int = 0
     motorcycle: int = 0
@@ -71,6 +83,30 @@ class JunctionTrafficState(BaseModel):
     west: Optional[ApproachTrafficState] = None
     total_active_vehicles: int = 0
     aggregate_level: TrafficLevelEnum = TrafficLevelEnum.LOW
+
+
+class TrafficAlert(BaseModel):
+    severity: AlertSeverityEnum
+    approach: Optional[ApproachEnum] = None
+    message: str
+
+
+class SignalRecommendation(BaseModel):
+    junction_id: str
+    recommended_phase: SignalPhaseEnum
+    green_duration_seconds: int = 0
+    yellow_duration_seconds: int = 4
+    all_red_duration_seconds: int = 2
+    north_south_score: float = 0.0
+    east_west_score: float = 0.0
+    rationale: str
+    alerts: List[TrafficAlert] = Field(default_factory=list)
+    is_simulation: bool = True
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class SignalSimulationRequest(BaseModel):
+    current_phase: SignalPhaseEnum = SignalPhaseEnum.ALL_RED
 
 class JunctionCreate(BaseModel):
     junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})
