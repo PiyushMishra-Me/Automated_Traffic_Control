@@ -74,4 +74,33 @@ class TrafficRepository:
                 states[app] = latest
         return states
 
+    def get_observation_history(
+        self,
+        junction_id: str,
+        approach: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[dict]:
+        """Return newest-first observations for charts and operational review."""
+        limit = max(1, min(limit, 500))
+        query = {"junction_id": junction_id}
+        if approach:
+            query["approach"] = approach.upper()
+
+        col = self.collection
+        if col is not None:
+            try:
+                items = list(col.find(query).sort("timestamp", -1).limit(limit))
+                for item in items:
+                    item["_id"] = str(item["_id"])
+                return items
+            except Exception:
+                pass
+
+        items = [
+            item for item in _memory_observations
+            if item.get("junction_id") == junction_id
+            and (not approach or item.get("approach") == approach.upper())
+        ]
+        return sorted(items, key=lambda item: item.get("timestamp", datetime.min.replace(tzinfo=timezone.utc)), reverse=True)[:limit]
+
 traffic_repo = TrafficRepository()

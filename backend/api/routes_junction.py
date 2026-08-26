@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from backend.models.traffic_schemas import JunctionCreate, JunctionInfo, JunctionTrafficState, ApproachTrafficState
+from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.core.analytics.junction_aggregator import JunctionAggregator
@@ -20,6 +20,13 @@ def get_junction(junction_id: str):
     if not j:
         raise HTTPException(status_code=404, detail="Junction not found")
     return j
+
+@router.put("/{junction_id}/counting-lines", response_model=dict)
+def update_counting_lines(junction_id: str, payload: CountingLinesUpdate):
+    updated = junction_repo.update_counting_lines(junction_id, payload.custom_counting_lines)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Junction not found")
+    return updated
 
 @router.get("/{junction_id}/state", response_model=JunctionTrafficState)
 def get_junction_traffic_state(junction_id: str):

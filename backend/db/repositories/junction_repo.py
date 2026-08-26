@@ -67,4 +67,31 @@ class JunctionRepository:
                 pass
         return list(_memory_junctions.values())
 
+    def update_counting_lines(self, junction_id: str, counting_lines: dict) -> Optional[dict]:
+        """Persist calibrated normalized counting lines without overwriting junction details."""
+        existing = self.get_junction(junction_id)
+        if not existing:
+            return None
+
+        serializable_lines = {
+            str(approach.value if hasattr(approach, "value") else approach): (
+                config.model_dump() if hasattr(config, "model_dump") else config
+            )
+            for approach, config in counting_lines.items()
+        }
+        col = self.collection
+        if col is not None:
+            try:
+                col.update_one(
+                    {"junction_id": junction_id},
+                    {"$set": {"custom_counting_lines": serializable_lines}},
+                )
+            except Exception:
+                pass
+
+        memory_doc = _memory_junctions.get(junction_id, existing)
+        memory_doc["custom_counting_lines"] = serializable_lines
+        _memory_junctions[junction_id] = memory_doc
+        return memory_doc
+
 junction_repo = JunctionRepository()

@@ -104,15 +104,19 @@ code, pre {
 /* Controls Grid */
 .top-controls-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 @media (max-width: 900px) {
   .top-controls-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
+}
+
+@media (max-width: 650px) {
+  .top-controls-grid { grid-template-columns: 1fr; }
 }
 
 .panel-card {
@@ -167,6 +171,13 @@ code, pre {
 .form-input:focus, .form-select:focus {
   border-color: var(--accent-cyan);
 }
+
+.compact-select { width: auto; min-width: 130px; padding: 0.45rem 0.65rem; }
+.coordinate-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.coordinate-grid .form-input { margin-top: 0.35rem; padding: 0.5rem; }
+.help-text { color: var(--text-muted); font-size: 0.75rem; margin: 0.75rem 0; }
+.form-error { color: var(--level-very-high); font-size: 0.8rem; margin: 0.75rem 0; }
+.form-success { color: var(--level-low); font-size: 0.8rem; margin: 0.75rem 0; }
 
 .btn-primary {
   display: inline-flex;
@@ -394,3 +405,16 @@ code, pre {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.analytics-history { margin-top: 1.5rem; }
+.summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem; }
+.summary-metric { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem; }
+.summary-metric span { display: block; color: var(--text-secondary); font-size: 0.7rem; text-transform: uppercase; }
+.summary-metric strong { color: var(--accent-cyan); font-size: 1.15rem; }
+.history-chart { height: 130px; margin-top: 1rem; display: flex; align-items: end; gap: 0.7rem; border-bottom: 1px solid var(--border-color); padding: 0 0.5rem; }
+.history-chart > p { align-self: center; color: var(--text-muted); font-size: 0.85rem; }
+.history-bar-item { height: 100%; flex: 1; min-width: 18px; display: flex; flex-direction: column; justify-content: end; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.7rem; }
+.history-bar { width: 100%; max-width: 40px; min-height: 8px; background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue)); border-radius: 4px 4px 0 0; }
+
+@media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } .coordinate-grid { grid-template-columns: repeat(2, 1fr); } }

@@ -4,6 +4,8 @@ import JunctionSelector from './components/JunctionSelector';
 import VideoUploader from './components/VideoUploader';
 import ApproachFeedCard from './components/ApproachFeedCard';
 import JunctionOverview from './components/JunctionOverview';
+import AnalyticsHistory from './components/AnalyticsHistory';
+import CountingLineEditor from './components/CountingLineEditor';
 import { api } from './services/api';
 
 export default function App() {
@@ -11,6 +13,8 @@ export default function App() {
   const [selectedJunction, setSelectedJunction] = useState('J-01');
   const [junctionState, setJunctionState] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [analyticsRefresh, setAnalyticsRefresh] = useState(0);
+  const selectedJunctionData = junctions.find((junction) => junction.junction_id === selectedJunction);
 
   const fetchJunctions = async () => {
     try {
@@ -47,6 +51,7 @@ export default function App() {
   const handleJobCompleted = (job) => {
     // Refresh junction state after a video completes processing
     fetchJunctionState(selectedJunction);
+    setAnalyticsRefresh((current) => current + 1);
   };
 
   return (
@@ -64,6 +69,11 @@ export default function App() {
         <VideoUploader 
           junctionId={selectedJunction}
           onJobCompleted={handleJobCompleted}
+        />
+
+        <CountingLineEditor
+          junction={selectedJunctionData}
+          onSaved={(updated) => setJunctions((current) => current.map((junction) => junction.junction_id === updated.junction_id ? updated : junction))}
         />
       </div>
 
@@ -96,6 +106,7 @@ export default function App() {
       </div>
 
       <JunctionOverview junctionState={junctionState} />
+      <AnalyticsHistory junctionId={selectedJunction} refreshKey={analyticsRefresh} />
     </div>
   );
 }

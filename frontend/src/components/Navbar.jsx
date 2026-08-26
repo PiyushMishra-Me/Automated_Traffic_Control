@@ -10,7 +10,7 @@ export default function Navbar() {
         </div>
         <div className="brand-title">
           <h1>Intelligent Traffic Management System</h1>
-          <p>Phase 1 • Real-Time Multi-Approach Video Monitoring & Tracking</p>
+          <p>Phase 2 • Monitoring, Calibration & Historical Analytics</p>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

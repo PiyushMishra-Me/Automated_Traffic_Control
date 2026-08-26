@@ -24,6 +24,16 @@ export const api = {
     return res.json();
   },
 
+  async updateCountingLines(junctionId, customCountingLines) {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/counting-lines`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ custom_counting_lines: customCountingLines }),
+    });
+    if (!res.ok) throw new Error('Failed to save counting-line calibration');
+    return res.json();
+  },
+
   // Videos
   async uploadVideo(junctionId, approach, file) {
     const formData = new FormData();
@@ -48,6 +58,23 @@ export const api = {
   async getLatestApproachObservation(junctionId, approach) {
     const res = await fetch(`${API_BASE}/analytics/junction/${junctionId}/approach/${approach}`);
     if (!res.ok) return null;
+    return res.json();
+  },
+
+  async getAnalyticsHistory(junctionId, approach = null, limit = 50) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (approach) params.set('approach', approach);
+    const res = await fetch(`${API_BASE}/analytics/junction/${junctionId}/history?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch analytics history');
+    return res.json();
+  },
+
+  async getAnalyticsSummary(junctionId, approach = null) {
+    const params = new URLSearchParams();
+    if (approach) params.set('approach', approach);
+    const suffix = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE}/analytics/junction/${junctionId}/summary${suffix}`);
+    if (!res.ok) throw new Error('Failed to fetch analytics summary');
     return res.json();
   },
 };

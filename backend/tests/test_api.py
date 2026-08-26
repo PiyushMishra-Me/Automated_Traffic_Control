@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
+from backend.db.repositories.traffic_repo import traffic_repo
+from backend.models.traffic_schemas import ApproachEnum, ApproachTrafficState, TrafficLevelEnum
 
 client = TestClient(app)
 
@@ -8,7 +10,7 @@ def test_root_endpoint():
     res = client.get("/")
     assert res.status_code == 200
     data = res.json()
-    assert data["phase"] == 1
+    assert data["phase"] == 2
     assert data["status"] == "online"
 
 def test_list_junctions():
@@ -38,3 +40,18 @@ def test_get_junction_state():
     assert "south" in data
     assert "east" in data
     assert "west" in data
+
+def test_counting_line_calibration_and_analytics_history():
+    calibration = {"custom_counting_lines": {"NORTH": {"p1": [0.1, 0.5], "p2": [0.9, 0.5], "orientation": "horizontal"}}}
+    res = client.put("/api/junctions/J-01/counting-lines", json=calibration)
+    assert res.status_code == 200
+    assert res.json()["custom_counting_lines"]["NORTH"]["p1"] == [0.1, 0.5]
+
+    traffic_repo.save_observation("J-01", ApproachTrafficState(approach=ApproachEnum.NORTH, vehicle_count=6, density=0.3, estimated_queue_length=2, flow=9, traffic_level=TrafficLevelEnum.MEDIUM))
+    history = client.get("/api/analytics/junction/J-01/history?approach=NORTH")
+    assert history.status_code == 200
+    assert history.json()[0]["vehicle_count"] == 6
+    summary = client.get("/api/analytics/junction/J-01/summary?approach=NORTH")
+    assert summary.status_code == 200
+    assert summary.json()["observations"] >= 1
+    assert summary.json()["peak_vehicle_count"] >= 6

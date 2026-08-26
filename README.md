@@ -1,11 +1,11 @@
 # Intelligent Traffic Management and Road Safety System
 ## Phase 1 — Real-Time Multi-Approach Traffic Monitoring Foundation
 
-A college-level SIH prototype implementing approach-specific traffic monitoring with **YOLOv8n** vehicle detection, **ByteTrack** tracking, per-approach analytics, 4-way junction aggregation, **MongoDB** persistence, and a **React** dashboard.
+A college-level SIH prototype implementing approach-specific traffic monitoring with **YOLOv8n** vehicle detection, **ByteTrack** tracking, per-approach analytics, 4-way junction aggregation, historical observations, camera calibration, **MongoDB** persistence, and a **React** dashboard.
 
 ---
 
-## Key Features in Phase 1
+## Key Features through Phase 2
 
 1. **Approach-Specific Architecture**:
    - Each uploaded video represents a dedicated camera feed for one road approach (**NORTH**, **SOUTH**, **EAST**, or **WEST**).
@@ -33,6 +33,12 @@ A college-level SIH prototype implementing approach-specific traffic monitoring 
    - Real-time progress indicators.
    - Replay annotated videos with bounding boxes, track IDs, counting line, and HUD overlay.
    - View approach statistics and intersection-wide aggregated metrics.
+9. **Historical Analytics (Phase 2)**:
+   - Stores each completed-video observation and exposes per-junction or per-approach history.
+   - Dashboard summary shows average/peak vehicle count, density, queue, flow, and a recent-observation chart.
+10. **Camera Calibration (Phase 2)**:
+   - Configure a normalized virtual counting line for each junction approach from the dashboard.
+   - Saved calibration is used the next time a video is processed for that approach.
 
 ---
 
@@ -97,6 +103,16 @@ npm install
 npm run dev
 ```
 Dashboard UI: `http://localhost:5173`
+
+## Phase 2 API additions
+
+- `PUT /api/junctions/{junction_id}/counting-lines` saves calibrated counting lines. Coordinates are normalized from `0` to `1`.
+- `GET /api/analytics/junction/{junction_id}/history?approach=NORTH&limit=50` returns latest-first completed-video observations.
+- `GET /api/analytics/junction/{junction_id}/summary?approach=NORTH` returns aggregate operational metrics.
+
+## Scope and safety
+
+This application processes uploaded, recorded traffic video. It does not yet connect to live cameras or operate physical traffic lights. Any future signal-control integration should use a simulator, manual override, fail-safe state, authorization, and a jurisdiction-approved controller interface.
 
 ---
 

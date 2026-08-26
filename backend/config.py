@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # App
-    APP_NAME: str = "Intelligent Traffic Management System - Phase 1"
+    APP_NAME: str = "Intelligent Traffic Management System - Phase 2"
     DEBUG: bool = True
     
     # Paths

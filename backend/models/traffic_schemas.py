@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class ApproachEnum(str, Enum):
     NORTH = "NORTH"
@@ -25,6 +25,29 @@ class CountingLineConfig(BaseModel):
     p1: List[float] = Field(..., description="Normalized [x1, y1] coordinates (0.0 - 1.0)")
     p2: List[float] = Field(..., description="Normalized [x2, y2] coordinates (0.0 - 1.0)")
     orientation: str = "horizontal"  # "horizontal" or "vertical"
+
+    @field_validator("p1", "p2")
+    @classmethod
+    def validate_normalized_point(cls, point: List[float]) -> List[float]:
+        if len(point) != 2 or any(value < 0 or value > 1 for value in point):
+            raise ValueError("Counting-line points must have two normalized coordinates between 0 and 1")
+        return point
+
+
+class CountingLinesUpdate(BaseModel):
+    """Per-approach counting-line calibration for a junction camera."""
+    custom_counting_lines: Dict[ApproachEnum, CountingLineConfig]
+
+
+class AnalyticsSummary(BaseModel):
+    junction_id: str
+    approach: Optional[ApproachEnum] = None
+    observations: int = 0
+    average_vehicle_count: float = 0.0
+    average_density: float = 0.0
+    average_queue_length: float = 0.0
+    latest_flow: float = 0.0
+    peak_vehicle_count: int = 0
 
 class ApproachTrafficState(BaseModel):
     approach: ApproachEnum
