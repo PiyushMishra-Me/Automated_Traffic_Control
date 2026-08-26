@@ -29,6 +29,7 @@ class VehicleDetector:
             source=frame,
             conf=self.conf_threshold,
             iou=self.iou_threshold,
+            imgsz=settings.INFERENCE_IMAGE_SIZE,
             classes=self.target_classes,
             verbose=False
         )

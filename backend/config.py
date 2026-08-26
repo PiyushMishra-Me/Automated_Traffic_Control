@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = DATA_DIR / "uploads"
     ANNOTATED_DIR: Path = DATA_DIR / "annotated"
     MODEL_PATH: str = "yolov8n.pt"
+    # Optional full path to FFmpeg. If omitted, the backend searches PATH.
+    FFMPEG_BINARY: str | None = None
     
     # MongoDB
     MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
@@ -23,6 +25,8 @@ class Settings(BaseSettings):
     # Vision & Detection
     CONFIDENCE_THRESHOLD: float = 0.30
     IOU_THRESHOLD: float = 0.45
+    # A larger inference image catches more small/distant vehicles at the cost of speed.
+    INFERENCE_IMAGE_SIZE: int = 960
     TARGET_CLASSES: list[int] = [2, 3, 5, 7] # 2: car, 3: motorcycle, 5: bus, 7: truck
     CLASS_NAMES: dict[int, str] = {
         2: "car",

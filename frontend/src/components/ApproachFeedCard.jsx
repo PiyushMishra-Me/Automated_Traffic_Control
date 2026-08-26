@@ -51,13 +51,13 @@ export default function ApproachFeedCard({ approachName, state }) {
       <div className="metrics-strip">
         <div className="metric-cell">
           <div className="metric-val">{state ? state.vehicle_count : '—'}</div>
-          <div className="metric-lbl">Active Vehicles</div>
+          <div className="metric-lbl">Peak Vehicles</div>
         </div>
         <div className="metric-cell">
           <div className="metric-val" style={{ color: '#f59e0b' }}>
             {state ? `~${state.estimated_queue_length}` : '—'}
           </div>
-          <div className="metric-lbl">Est. Queue</div>
+          <div className="metric-lbl">Peak Queue</div>
         </div>
         <div className="metric-cell">
           <div className="metric-val" style={{ color: '#38bdf8' }}>
@@ -69,7 +69,7 @@ export default function ApproachFeedCard({ approachName, state }) {
           <div className="metric-val" style={{ color: '#818cf8' }}>
             {state ? Number(state.density).toFixed(2) : '—'}
           </div>
-          <div className="metric-lbl">Density Index</div>
+          <div className="metric-lbl">Avg. Density</div>
         </div>
       </div>
 

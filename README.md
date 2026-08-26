@@ -85,6 +85,8 @@ traffic_management/
 
 ## How to Run Locally
 
+Install FFmpeg first and ensure its `bin` folder is on your system `PATH`. The backend uses it to encode annotated videos as browser-playable H.264 MP4 files.
+
 ### 1. Start the Backend
 
 ```bash

@@ -1,6 +1,8 @@
 import os
 import cv2
 import numpy as np
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Callable, Optional
 from backend.config import settings
@@ -43,6 +45,9 @@ class VideoProcessor:
         video_path = Path(video_path)
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        # OpenCV's mp4v output is not consistently supported by web browsers.
+        # It is only an intermediate file; FFmpeg creates the final H.264 video.
+        temporary_output_path = output_path.with_name(f"{output_path.stem}.working.mp4")
 
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
@@ -53,15 +58,21 @@ class VideoProcessor:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # Setup Video Writer (Use avc1 / mp4v codec for browser compatibility)
+        # FFmpeg performs the final browser-compatible H.264 encode below.
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+        out = cv2.VideoWriter(str(temporary_output_path), fourcc, fps, (width, height))
+        if not out.isOpened():
+            cap.release()
+            raise ValueError("Could not create the temporary annotated video")
 
         metrics_calculator = TrafficMetricsCalculator(approach, counting_line_config)
         self.tracker.reset()
 
         frame_idx = 0
         latest_state: Optional[ApproachTrafficState] = None
+        peak_state: Optional[ApproachTrafficState] = None
+        total_density = 0.0
+        max_queue_length = 0
 
         try:
             while cap.isOpened():
@@ -83,6 +94,10 @@ class VideoProcessor:
                     fps=fps
                 )
                 latest_state = state
+                total_density += state.density
+                max_queue_length = max(max_queue_length, state.estimated_queue_length)
+                if peak_state is None or state.vehicle_count > peak_state.vehicle_count:
+                    peak_state = state.model_copy(deep=True)
 
                 # Draw Visual Annotations
                 annotated_frame = self._annotate_frame(
@@ -106,6 +121,11 @@ class VideoProcessor:
             cap.release()
             out.release()
 
+        try:
+            self._encode_for_browser(temporary_output_path, output_path)
+        finally:
+            temporary_output_path.unlink(missing_ok=True)
+
         # If video was processed, return final state
         if latest_state is None:
             latest_state = metrics_calculator.calculate_metrics(
@@ -115,11 +135,46 @@ class VideoProcessor:
                 processed_frames=frame_idx,
                 fps=fps
             )
+            peak_state = latest_state.model_copy(deep=True)
+
+        # A completed upload represents an entire recorded video, not a live
+        # frame. The final frame is often empty, so expose useful whole-video
+        # values to the dashboard: peak traffic, average density, max queue,
+        # and final cumulative flow.
+        assert peak_state is not None
+        latest_state = latest_state.model_copy(update={
+            "vehicle_count": peak_state.vehicle_count,
+            "class_counts": peak_state.class_counts,
+            "density": round(total_density / max(1, frame_idx), 3),
+            "estimated_queue_length": max_queue_length,
+        })
 
         if progress_callback:
             progress_callback(100.0, "Processing complete")
 
         return latest_state
+
+    @staticmethod
+    def _encode_for_browser(source_path: Path, output_path: Path) -> None:
+        """Encode an MP4 as H.264/yuv420p so it plays in standard browsers."""
+        ffmpeg = settings.FFMPEG_BINARY or os.getenv("FFMPEG_BINARY") or shutil.which("ffmpeg")
+        if not ffmpeg:
+            raise RuntimeError(
+                "FFmpeg is required to create browser-playable annotated videos. "
+                "Install FFmpeg and ensure its bin folder is on PATH."
+            )
+
+        command = [
+            ffmpeg, "-y", "-i", str(source_path),
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart", "-an", str(output_path),
+        ]
+        try:
+            subprocess.run(command, check=True, capture_output=True, text=True, timeout=1800)
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(f"FFmpeg could not encode the annotated video: {exc.stderr.strip()}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("FFmpeg timed out while encoding the annotated video") from exc
 
     def _annotate_frame(
         self,
