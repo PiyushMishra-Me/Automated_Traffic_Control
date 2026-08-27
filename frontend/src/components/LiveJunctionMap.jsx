@@ -22,6 +22,7 @@ export default function LiveJunctionMap({
   incidents = [],
   activeAmbulances = [],
   weatherData = null,
+  navigationRoute = null,
   onOpenReportModal
 }) {
   const [zoom, setZoom] = useState(1);
@@ -325,6 +326,44 @@ export default function LiveJunctionMap({
               </g>
             );
           })}
+
+          {/* Active Public Commuter Navigation Route */}
+          {navigationRoute && navigationRoute.length > 1 && (
+            <g className="commuter-nav-route-group">
+              {navigationRoute.map((nodeId, idx) => {
+                if (idx === navigationRoute.length - 1) return null;
+                const nextId = navigationRoute[idx + 1];
+                const j1 = junctions.find(j => j.junction_id === nodeId);
+                const j2 = junctions.find(j => j.junction_id === nextId);
+                if (!j1 || !j2) return null;
+
+                const p1 = projectCoords(j1.latitude, j1.longitude);
+                const p2 = projectCoords(j2.latitude, j2.longitude);
+
+                return (
+                  <g key={`nav-segment-${nodeId}-${nextId}`}>
+                    {/* Glowing Electric Cyan Base */}
+                    <line 
+                      x1={p1.x} y1={p1.y} 
+                      x2={p2.x} y2={p2.y} 
+                      stroke="rgba(6, 182, 212, 0.35)" 
+                      strokeWidth="16" 
+                      strokeLinecap="round" 
+                    />
+                    {/* Pulsing Navigation Trail */}
+                    <line 
+                      x1={p1.x} y1={p1.y} 
+                      x2={p2.x} y2={p2.y} 
+                      stroke="#06b6d4" 
+                      strokeWidth="4" 
+                      strokeDasharray="8,6" 
+                      className="animated-navigation-line" 
+                    />
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Junction Nodes / Pins */}
           {junctions.map((j) => {

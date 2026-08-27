@@ -2680,6 +2680,325 @@ button,input,select { font:inherit; } button { cursor:pointer; } .app-container 
   margin-bottom: 20px;
 }
 
+/* =========================================================================
+   PUBLIC COMMUTER DYNAMIC ROUTE PLANNER STYLES
+   ========================================================================= */
+.commuter-route-planner-card {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  padding: 24px 28px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.planner-header {
+  margin-bottom: 20px;
+}
+
+.planner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.planner-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planner-field label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.planner-field select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.planner-field select:focus {
+  border-color: #0284c7;
+  background: #fff;
+}
+
+.planner-action-col {
+  display: flex;
+  align-items: flex-end;
+}
+
+.btn-find-route {
+  width: 100%;
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-find-route:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+}
+
+.route-results-container {
+  margin-top: 24px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.route-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.route-stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-stat-box.primary {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.route-stat-box.green {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.route-stat-box .stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.route-stat-box .stat-val {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.route-stat-box .stat-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.emergency-route-alert-box {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #ef4444;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.alert-badge-row {
+  margin-bottom: 8px;
+}
+
+.badge-emergency-preempt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ef4444;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.alert-text-content .warn-p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.alert-text-content .warn-instruction {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.route-advisories-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adv-chip.load {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+.adv-chip.weather {
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #0891b2;
+}
+
+.turn-guidance-list h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.steps-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.step-item.step-emergency {
+  background: #fffaf0;
+  border-color: #fed7aa;
+  border-left: 4px solid #f97316;
+}
+
+.step-num-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-road {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.step-dist {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.step-inst {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.step-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.step-cong-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.step-cong-badge.low { background: #dcfce7; color: #15803d; }
+.step-cong-badge.medium { background: #fef9c3; color: #854d0e; }
+.step-cong-badge.high { background: #fee2e2; color: #b91c1c; }
+.step-cong-badge.very_high { background: #fee2e2; color: #991b1b; }
+.step-cong-badge.severe_incident_blockage { background: #7f1d1d; color: #fff; }
+
+.step-emb-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.step-adv-text {
+  font-size: 11px;
+  color: #d97706;
+  font-weight: 600;
+}
+
+/* Pulsing Electric Cyan Animation for Commuter Route on Map */
+.animated-navigation-line {
+  animation: navLineFlow 0.9s linear infinite;
+}
+
+@keyframes navLineFlow {
+  from { stroke-dashoffset: 28; }
+  to { stroke-dashoffset: 0; }
+}
+
+
 
 
 

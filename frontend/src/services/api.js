@@ -224,4 +224,24 @@ export const api = {
     if (!res.ok) throw new Error('Failed to fetch junction preemption status');
     return res.json();
   },
+
+  // Public Navigation & Optimal Route Pathfinder
+  async calculateOptimalRoute(payload) {
+    const res = await fetch(`${API_BASE}/navigation/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to calculate optimal route' }));
+      throw new Error(err.detail || 'Failed to calculate optimal route');
+    }
+    return res.json();
+  },
+
+  async getCorridorStatuses() {
+    const res = await fetch(`${API_BASE}/navigation/corridors`);
+    if (!res.ok) throw new Error('Failed to fetch corridor statuses');
+    return res.json();
+  },
 };
