@@ -9,6 +9,14 @@ class ApproachEnum(str, Enum):
     EAST = "EAST"
     WEST = "WEST"
 
+class MovementStateEnum(str, Enum):
+    INCOMING = "INCOMING"
+    OUTGOING = "OUTGOING"
+    STOPPED_INCOMING = "STOPPED_INCOMING"
+    STOPPED_OUTGOING = "STOPPED_OUTGOING"
+    PARKED = "PARKED"
+    UNKNOWN = "UNKNOWN"
+
 class TrafficLevelEnum(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -61,9 +69,26 @@ class AnalyticsSummary(BaseModel):
     latest_flow: float = 0.0
     peak_vehicle_count: int = 0
 
+
+class CameraConfig(BaseModel):
+    camera_id: str = Field(..., json_schema_extra={"example": "CAM-J1-NORTH"})
+    junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})
+    approach: ApproachEnum = ApproachEnum.NORTH
+    # Normalized ROI [x1, y1, x2, y2] (0.0 to 1.0) or None for full frame
+    roi: Optional[List[float]] = Field(None, description="Normalized ROI [x1, y1, x2, y2] or pixel [x1, y1, x2, y2], or None for full frame")
+    # Junction movement vector [dx, dy] pointing toward the junction in camera image space
+    junction_vector: List[float] = Field(default_factory=lambda: [0.0, 1.0], description="Normalized [dx, dy] pointing toward junction")
+    # Virtual counting line configuration
+    counting_line: Optional[CountingLineConfig] = None
+    # Optional polygon corridors in normalized coordinates [[x,y], [x,y], ...]
+    incoming_corridor: Optional[List[List[float]]] = Field(None, description="Normalized polygon for incoming traffic corridor")
+    outgoing_corridor: Optional[List[List[float]]] = Field(None, description="Normalized polygon for outgoing traffic corridor")
+    fps: float = 25.0
+    is_bidirectional: bool = False
+
 class ApproachTrafficState(BaseModel):
     approach: ApproachEnum
-    vehicle_count: int = Field(0, description="Active vehicles in current frame / scene")
+    vehicle_count: int = Field(0, description="Active vehicles in current frame / scene (excluding parked)")
     class_counts: Dict[str, int] = Field(default_factory=lambda: {"car": 0, "motorcycle": 0, "bus": 0, "truck": 0})
     density: float = Field(0.0, description="Density index (0.0 to 1.0)")
     estimated_queue_length: int = Field(0, description="Estimated count of stationary / queued vehicles")
@@ -71,6 +96,15 @@ class ApproachTrafficState(BaseModel):
     traffic_level: TrafficLevelEnum = TrafficLevelEnum.LOW
     processed_frames: int = 0
     total_unique_vehicles: int = 0
+    # Directional movement metrics
+    incoming_count: int = Field(0, description="Active incoming vehicles (moving + stopped)")
+    outgoing_count: int = Field(0, description="Active outgoing vehicles (moving + stopped)")
+    stopped_incoming_count: int = Field(0, description="Stopped vehicles that were incoming")
+    stopped_outgoing_count: int = Field(0, description="Stopped vehicles that were outgoing")
+    parked_count: int = Field(0, description="Parked vehicles (stationary > 5 mins)")
+    unknown_direction_count: int = Field(0, description="Vehicles with unknown movement state")
+    incoming_flow: float = Field(0.0, description="Cumulative incoming vehicles crossing counting line")
+    outgoing_flow: float = Field(0.0, description="Cumulative outgoing vehicles crossing counting line")
     annotated_video_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -4,18 +4,19 @@ __pycache__/
 .venv/
 venv/
 env/
+.pytest_cache/
 
 # Environment variables
 .env
 .env.*
 
-# YOLO/model files
+# YOLO/model files & run artifacts
 *.pt
 *.onnx
+runs/
 
-# Uploaded/generated videos
-data/uploads/
-data/annotated/
+# Data and Videos
+data/
 *.mp4
 *.avi
 *.mov
