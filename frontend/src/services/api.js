@@ -40,10 +40,10 @@ export const api = {
     return res.json();
   },
 
-  async simulateSignal(junctionId, currentPhase = 'ALL_RED') {
+  async simulateSignal(junctionId, horizonSeconds = 180) {
     const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-simulation`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_phase: currentPhase }),
+      body: JSON.stringify({ current_phase: 'ALL_RED', horizon_seconds: horizonSeconds }),
     });
     if (!res.ok) throw new Error('Failed to run signal simulation');
     return res.json();

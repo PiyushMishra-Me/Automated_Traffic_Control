@@ -141,6 +141,52 @@ class SignalRecommendation(BaseModel):
 
 class SignalSimulationRequest(BaseModel):
     current_phase: SignalPhaseEnum = SignalPhaseEnum.ALL_RED
+    # Simulated wall-clock horizon in seconds. Both the adaptive run and the
+    # fixed-timer baseline are simulated over this same horizon for a fair
+    # comparison. One timeline snapshot is emitted per simulated second.
+    horizon_seconds: int = Field(180, ge=30, le=600)
+
+
+class SimulationStep(BaseModel):
+    """A single one-second snapshot of the adaptive simulation timeline."""
+    t: int = Field(..., description="Elapsed simulated seconds")
+    phase: SignalPhaseEnum
+    phase_label: str
+    phase_time_remaining: int = Field(0, description="Seconds left in the current phase")
+    lights: Dict[str, str] = Field(..., description="Approach -> GREEN | YELLOW | RED")
+    queues: Dict[str, int] = Field(..., description="Approach -> vehicles currently queued")
+    served_total: int = Field(0, description="Cumulative vehicles discharged so far")
+
+
+class ApproachSimSummary(BaseModel):
+    approach: ApproachEnum
+    arrivals: int = 0
+    served: int = 0
+    max_queue: int = 0
+    final_queue: int = 0
+    avg_wait: float = Field(0.0, description="Average delay per vehicle (seconds)")
+
+
+class SimulationComparison(BaseModel):
+    """Adaptive controller vs a naive fixed-timer baseline over the same arrivals."""
+    adaptive_avg_wait: float = 0.0
+    fixed_avg_wait: float = 0.0
+    adaptive_served: int = 0
+    fixed_served: int = 0
+    improvement_pct: float = Field(0.0, description="Reduction in avg wait vs fixed-timer (%)")
+
+
+class SignalSimulationResult(BaseModel):
+    junction_id: str
+    total_seconds: int
+    steps: List[SimulationStep] = Field(default_factory=list)
+    per_approach: List[ApproachSimSummary] = Field(default_factory=list)
+    comparison: SimulationComparison = Field(default_factory=SimulationComparison)
+    recommendation: SignalRecommendation
+    rationale: str = ""
+    seeded_demo: bool = Field(False, description="True when no observations existed and a demo scenario was used")
+    is_simulation: bool = True
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class JunctionCreate(BaseModel):
     junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})

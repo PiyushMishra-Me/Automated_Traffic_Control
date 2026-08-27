@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState, SignalRecommendation, SignalSimulationRequest
+from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState, SignalRecommendation, SignalSimulationRequest, SignalSimulationResult
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.core.analytics.junction_aggregator import JunctionAggregator
 from backend.core.control.adaptive_signal import AdaptiveSignalController
+from backend.core.control.signal_simulation import TrafficSimulator
 
 router = APIRouter(prefix="/api/junctions", tags=["Junctions"])
 
@@ -63,9 +64,10 @@ def get_signal_recommendation(junction_id: str):
         raise HTTPException(status_code=404, detail="Junction not found")
     return AdaptiveSignalController.recommend(_current_junction_state(junction_id))
 
-@router.post("/{junction_id}/signal-simulation", response_model=SignalRecommendation)
+@router.post("/{junction_id}/signal-simulation", response_model=SignalSimulationResult)
 def simulate_signal_recommendation(junction_id: str, payload: SignalSimulationRequest):
     if not junction_repo.get_junction(junction_id):
         raise HTTPException(status_code=404, detail="Junction not found")
-    # The request documents the simulator's current phase for UI clients; no hardware state is changed.
-    return AdaptiveSignalController.recommend(_current_junction_state(junction_id))
+    # Runs a deterministic, time-stepped simulation of the junction over the
+    # requested horizon. No hardware state is changed; this is analysis only.
+    return TrafficSimulator.run(_current_junction_state(junction_id), horizon=payload.horizon_seconds)
