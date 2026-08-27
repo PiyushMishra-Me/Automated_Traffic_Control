@@ -1,40 +1,75 @@
 """
-pcu.py
-Passenger Car Unit (PCU) calculation module using field-measured Indian PCU values.
+priority.py
+Priority score calculation module.
+Computes P(d) = 0.45 * Queue_norm + 0.35 * WaitTime_norm + 0.20 * FlowRate_norm
+Ensures priority remains bounded strictly between 0.0 and 1.0.
 """
 
-from typing import Dict, Optional
-from backend.decisionbackend.junction_config import PCUConfig
+from typing import Optional, Dict
+from backend.decisionbackend.junction_config import PriorityWeights, NormalizationConfig
+from backend.decisionbackend.traffic_metrics import normalize_metrics
+from backend.decisionbackend.models import Approach, PriorityScore, DirectionTraffic
 
 
-def calculate_queue_pcu(vehicle_counts: Dict[str, int], config: Optional[PCUConfig] = None) -> float:
+def calculate_priority_score(
+    direction: Approach,
+    queue_pcu: float,
+    wait_time_sec: float,
+    flow_rate_pcu_min: float,
+    weights: Optional[PriorityWeights] = None,
+    norm_config: Optional[NormalizationConfig] = None
+) -> PriorityScore:
     """
-    Convert vehicle counts by category into Passenger Car Units (PCU).
-    Formula: Queue_PCU(d) = sum(vehicle_count[class] * PCU[class])
-
-    Coefficients (Field-measured Indian PCU):
-    - TWO_WHEELER: 0.13
-    - CAR: 1.00
-    - AUTO_RICKSHAW: 0.75
-    - BUS: 5.40
-    - TRUCK: 3.70
-
-    Example:
-    10 two-wheelers, 8 cars, 2 buses
-    Queue_PCU = 10 * 0.13 + 8 * 1.00 + 2 * 5.40 = 20.1 PCU
+    Compute P(d) for a single approach:
+    P(d) = w_queue * Queue_norm + w_wait * WaitTime_norm + w_flow * FlowRate_norm
     """
-    if config is None:
-        config = PCUConfig()
+    if weights is None:
+        weights = PriorityWeights()
 
-    pcu_map = config.to_dict()
-    total_pcu = 0.0
+    norm = normalize_metrics(queue_pcu, wait_time_sec, flow_rate_pcu_min, norm_config)
 
-    for v_class, count in vehicle_counts.items():
-        if count <= 0:
-            continue
-        # Normalize key name
-        norm_key = v_class.strip().lower().replace(" ", "_").replace("-", "_")
-        coeff = pcu_map.get(norm_key, 1.0) # Default to 1.0 if unrecognized
-        total_pcu += count * coeff
+    score = (
+        weights.w_queue * norm.queue_norm +
+        weights.w_wait * norm.wait_norm +
+        weights.w_flow * norm.flow_norm
+    )
+    score_clamped = min(max(round(score, 4), 0.0), 1.0)
 
-    return round(total_pcu, 4)
+    return PriorityScore(
+        direction=direction,
+        score=score_clamped,
+        queue_norm=norm.queue_norm,
+        wait_norm=norm.wait_norm,
+        flow_norm=norm.flow_norm
+    )
+
+
+def compute_all_priorities(
+    traffic_by_direction: Dict[Approach, DirectionTraffic],
+    weights: Optional[PriorityWeights] = None,
+    norm_config: Optional[NormalizationConfig] = None
+) -> Dict[Approach, PriorityScore]:
+    """
+    Calculate priority score for each of the four junction approaches.
+    """
+    scores = {}
+    for approach in [Approach.NORTH, Approach.SOUTH, Approach.EAST, Approach.WEST]:
+        traffic = traffic_by_direction.get(approach)
+        if traffic:
+            scores[approach] = calculate_priority_score(
+                direction=approach,
+                queue_pcu=traffic.queue_pcu,
+                wait_time_sec=traffic.wait_time,
+                flow_rate_pcu_min=traffic.flow_rate,
+                weights=weights,
+                norm_config=norm_config
+            )
+        else:
+            scores[approach] = PriorityScore(
+                direction=approach,
+                score=0.0,
+                queue_norm=0.0,
+                wait_norm=0.0,
+                flow_norm=0.0
+            )
+    return scores

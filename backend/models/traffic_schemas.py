@@ -192,12 +192,25 @@ class JunctionCreate(BaseModel):
     junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})
     name: str = Field(..., json_schema_extra={"example": "Central Crossing"})
     location: Optional[str] = "Main Avenue & 5th Street"
+    latitude: float = Field(28.6139, description="Geographic latitude coordinate")
+    longitude: float = Field(77.2090, description="Geographic longitude coordinate")
+    road_names: Optional[Dict[str, str]] = Field(default_factory=lambda: {
+        "NORTH": "North Boulevard",
+        "SOUTH": "South Expressway",
+        "EAST": "East Arterial Corridor",
+        "WEST": "West Linkway"
+    })
+    connected_junctions: Optional[List[str]] = Field(default_factory=list)
     custom_counting_lines: Optional[Dict[str, CountingLineConfig]] = None
 
 class JunctionInfo(BaseModel):
     junction_id: str
     name: str
     location: Optional[str] = ""
+    latitude: float = 28.6139
+    longitude: float = 77.2090
+    road_names: Dict[str, str] = Field(default_factory=dict)
+    connected_junctions: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     approaches_configured: List[str] = []
 

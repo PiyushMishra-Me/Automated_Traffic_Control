@@ -1,82 +1,40 @@
 """
-models.py
-Data models and enumeration types for the 4-approach traffic signal decision engine.
+pcu.py
+Passenger Car Unit (PCU) calculation module using field-measured Indian PCU values.
 """
 
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import Dict, Optional, List
+from typing import Dict, Optional
+from backend.decisionbackend.junction_config import PCUConfig
 
 
-class Approach(str, Enum):
-    NORTH = "NORTH"
-    SOUTH = "SOUTH"
-    EAST = "EAST"
-    WEST = "WEST"
-
-
-class SignalColor(str, Enum):
-    RED = "RED"
-    YELLOW = "YELLOW"
-    GREEN = "GREEN"
-
-
-class PhaseState(str, Enum):
-    GREEN = "GREEN"          # Approach has active green
-    YELLOW = "YELLOW"        # Approach is in yellow change interval
-    ALL_RED = "ALL_RED"      # All approaches are red for intersection clearance
-
-
-@dataclass
-class DirectionTraffic:
+def calculate_queue_pcu(vehicle_counts: Dict[str, int], config: Optional[PCUConfig] = None) -> float:
     """
-    Traffic input metrics for a single approach at a decision tick.
-    """
-    direction: Approach
-    vehicle_counts: Dict[str, int] = field(default_factory=dict)
-    queue_pcu: float = 0.0
-    wait_time: float = 0.0                      # Seconds since last green
-    flow_rate: float = 0.0                      # PCU/min crossing counting line
-    vehicles_waiting: int = 0                   # Raw count of queued vehicles
-    vehicles_crossed_recently: int = 0          # Vehicles crossed in last window
-    time_since_last_vehicle_passed: float = 0.0 # Seconds since last vehicle crossed counting line
+    Convert vehicle counts by category into Passenger Car Units (PCU).
+    Formula: Queue_PCU(d) = sum(vehicle_count[class] * PCU[class])
 
+    Coefficients (Field-measured Indian PCU):
+    - TWO_WHEELER: 0.13
+    - CAR: 1.00
+    - AUTO_RICKSHAW: 0.75
+    - BUS: 5.40
+    - TRUCK: 3.70
 
-@dataclass
-class NormalizedMetrics:
+    Example:
+    10 two-wheelers, 8 cars, 2 buses
+    Queue_PCU = 10 * 0.13 + 8 * 1.00 + 2 * 5.40 = 20.1 PCU
     """
-    Normalized metric values in range [0.0, 1.0].
-    """
-    queue_norm: float
-    wait_norm: float
-    flow_norm: float
+    if config is None:
+        config = PCUConfig()
 
+    pcu_map = config.to_dict()
+    total_pcu = 0.0
 
-@dataclass
-class PriorityScore:
-    """
-    Computed priority score P(d) and normalized components.
-    """
-    direction: Approach
-    score: float
-    queue_norm: float
-    wait_norm: float
-    flow_norm: float
+    for v_class, count in vehicle_counts.items():
+        if count <= 0:
+            continue
+        # Normalize key name
+        norm_key = v_class.strip().lower().replace(" ", "_").replace("-", "_")
+        coeff = pcu_map.get(norm_key, 1.0) # Default to 1.0 if unrecognized
+        total_pcu += count * coeff
 
-
-@dataclass
-class SignalDecision:
-    """
-    Output produced by the decision backend at each tick.
-    """
-    current_green: Optional[Approach]
-    active_phase: PhaseState
-    signal_states: Dict[Approach, SignalColor]
-    priority_scores: Dict[Approach, PriorityScore]
-    reason: str
-    phase_duration: float
-    time_in_phase: float
-    next_green_candidate: Optional[Approach] = None
-    all_red_remaining: float = 0.0
-    yellow_remaining: float = 0.0
-    is_switch_in_progress: bool = False
+    return round(total_pcu, 4)
