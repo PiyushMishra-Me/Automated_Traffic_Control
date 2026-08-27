@@ -77,49 +77,71 @@ class AdaptiveSignalController:
         active_incidents = incident_repo.get_active_for_junction(junction_state.junction_id)
         blocked_approaches = {inc.approach for inc in active_incidents}
 
+        # Check for active emergency ambulance preemption
+        from backend.db.repositories.ambulance_repo import ambulance_repo
+        from backend.core.control.ambulance_engine import ambulance_engine
+        active_missions = ambulance_repo.list_missions(status="DISPATCHED_TO_VICTIM") + ambulance_repo.list_missions(status="TRANSIT_TO_HOSPITAL")
+        preemption = ambulance_engine.get_preemption_for_junction(junction_state.junction_id, active_missions)
+
         # Fetch weather adjustments
         weather = weather_service.get_weather_for_junction(junction_state.junction_id)
         yellow_duration = int(round(4 + weather.adjustments.extra_yellow_seconds))
         all_red_duration = int(round(2 + weather.adjustments.extra_all_red_seconds))
 
-        north_score = cls._score(junction_state.north)
-        south_score = cls._score(junction_state.south)
-        east_score = cls._score(junction_state.east)
-        west_score = cls._score(junction_state.west)
-
-        # Apply incident penalty if approach is blocked
-        if "NORTH" in blocked_approaches:
-            north_score *= 0.2
-        if "SOUTH" in blocked_approaches:
-            south_score *= 0.2
-        if "EAST" in blocked_approaches:
-            east_score *= 0.2
-        if "WEST" in blocked_approaches:
-            west_score *= 0.2
-
-        north_south = round(north_score + south_score, 2)
-        east_west = round(east_score + west_score, 2)
-
-        if north_south == 0 and east_west == 0:
-            phase = SignalPhaseEnum.ALL_RED
-            green_seconds = 0
-            rationale = "No traffic observations available; maintaining all-red safe state."
-        elif north_south >= east_west:
-            phase = SignalPhaseEnum.NORTH_SOUTH_GREEN
-            green_seconds = min(90, max(30, round(30 + north_south)))
-            rationale = (
-                f"North/South selected with higher weighted demand score ({north_south:.1f} vs {east_west:.1f}). "
-                + (f"Adverse weather adjustment active: +{weather.adjustments.extra_yellow_seconds}s amber, +{weather.adjustments.extra_all_red_seconds}s all-red." if weather.adjustments.extra_yellow_seconds > 0 else "")
-            )
+        if preemption.is_preempted and preemption.preempted_approach:
+            # Emergency Ambulance Green Wave Override
+            if preemption.preempted_approach in [ApproachEnum.NORTH, ApproachEnum.SOUTH]:
+                phase = SignalPhaseEnum.NORTH_SOUTH_GREEN
+            else:
+                phase = SignalPhaseEnum.EAST_WEST_GREEN
+            green_seconds = 45
+            rationale = f"EMERGENCY OVERRIDE: {preemption.advisory} (Clearance window 45s active)."
+            north_south = 100.0 if phase == SignalPhaseEnum.NORTH_SOUTH_GREEN else 0.0
+            east_west = 100.0 if phase == SignalPhaseEnum.EAST_WEST_GREEN else 0.0
         else:
-            phase = SignalPhaseEnum.EAST_WEST_GREEN
-            green_seconds = min(90, max(30, round(30 + east_west)))
-            rationale = (
-                f"East/West selected with higher weighted demand score ({east_west:.1f} vs {north_south:.1f}). "
-                + (f"Adverse weather adjustment active: +{weather.adjustments.extra_yellow_seconds}s amber, +{weather.adjustments.extra_all_red_seconds}s all-red." if weather.adjustments.extra_yellow_seconds > 0 else "")
-            )
+            north_score = cls._score(junction_state.north)
+            south_score = cls._score(junction_state.south)
+            east_score = cls._score(junction_state.east)
+            west_score = cls._score(junction_state.west)
+
+            # Apply incident penalty if approach is blocked
+            if "NORTH" in blocked_approaches:
+                north_score *= 0.2
+            if "SOUTH" in blocked_approaches:
+                south_score *= 0.2
+            if "EAST" in blocked_approaches:
+                east_score *= 0.2
+            if "WEST" in blocked_approaches:
+                west_score *= 0.2
+
+            north_south = round(north_score + south_score, 2)
+            east_west = round(east_score + west_score, 2)
+
+            if north_south == 0 and east_west == 0:
+                phase = SignalPhaseEnum.ALL_RED
+                green_seconds = 0
+                rationale = "No traffic observations available; maintaining all-red safe state."
+            elif north_south >= east_west:
+                phase = SignalPhaseEnum.NORTH_SOUTH_GREEN
+                green_seconds = min(90, max(30, round(30 + north_south)))
+                rationale = (
+                    f"North/South selected with higher weighted demand score ({north_south:.1f} vs {east_west:.1f}). "
+                    + (f"Adverse weather adjustment active: +{weather.adjustments.extra_yellow_seconds}s amber, +{weather.adjustments.extra_all_red_seconds}s all-red." if weather.adjustments.extra_yellow_seconds > 0 else "")
+                )
+            else:
+                phase = SignalPhaseEnum.EAST_WEST_GREEN
+                green_seconds = min(90, max(30, round(30 + east_west)))
+                rationale = (
+                    f"East/West selected with higher weighted demand score ({east_west:.1f} vs {north_south:.1f}). "
+                    + (f"Adverse weather adjustment active: +{weather.adjustments.extra_yellow_seconds}s amber, +{weather.adjustments.extra_all_red_seconds}s all-red." if weather.adjustments.extra_yellow_seconds > 0 else "")
+                )
 
         alerts = cls._alerts(junction_state, active_incidents, weather)
+        if preemption.is_preempted:
+            alerts.insert(0, TrafficAlert(
+                severity=AlertSeverityEnum.CRITICAL,
+                message=f"EMERGENCY AMBULANCE CORRIDOR: {preemption.advisory}"
+            ))
 
         return SignalRecommendation(
             junction_id=junction_state.junction_id,

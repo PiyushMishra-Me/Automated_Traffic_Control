@@ -1372,4 +1372,1314 @@ button,input,select { font:inherit; } button { cursor:pointer; } .app-container 
   border-radius: 8px;
 }
 
+/* =========================================================================
+   ROLE PROFILES & AUTH HEADER STYLES
+   ========================================================================= */
+.role-auth-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 16px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(30, 41, 59, 0.04);
+  flex-wrap: wrap;
+}
+
+.role-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.role-select-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.role-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.role-tab-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.role-tab-btn.active.public {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.role-tab-btn.active.hospital {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
+.role-tab-btn.active.gov {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.role-badge.open {
+  background: rgba(14, 165, 233, 0.15);
+  color: #0284c7;
+}
+
+.role-tab-btn.active.public .role-badge.open {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.role-badge.locked {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.role-badge.auth {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.role-tab-btn.active .role-badge.auth {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.auth-status-chip {
+  display: flex;
+  align-items: center;
+}
+
+.authenticated-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #0e7490;
+  font-size: 12px;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 0;
+  color: #0891b2;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+}
+
+.btn-logout:hover {
+  color: #ef4444;
+}
+
+.public-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* =========================================================================
+   AUTH MODAL STYLES
+   ========================================================================= */
+.auth-modal-content {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 26px 28px;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+}
+
+.demo-credentials-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+
+/* =========================================================================
+   HOSPITAL EMERGENCY PORTAL STYLES
+   ========================================================================= */
+.hospital-portal-container {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.portal-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  flex-wrap: wrap;
+}
+
+.portal-hero.hospital-theme {
+  background: linear-gradient(135deg, #064e3b, #047857 50%, #065f46);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.portal-hero.gov-theme {
+  background: linear-gradient(135deg, #0f172a, #1e293b 50%, #090d16);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.portal-hero h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.portal-hero p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+.btn-dispatch-emergency {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: 0;
+  background: #fff;
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s;
+}
+
+.btn-dispatch-emergency:hover {
+  transform: scale(1.03);
+}
+
+.btn-emerald {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: 0;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.missions-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 4px 16px rgba(30, 41, 59, 0.03);
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.section-title-row h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.btn-refresh-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #dbe6f4;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.empty-missions-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 45px 20px;
+  text-align: center;
+}
+
+.empty-missions-card h4 {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.empty-missions-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.missions-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.mission-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 18px 22px;
+  background: #fff;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mission-card.active-mission-glow {
+  border-left: 5px solid #10b981;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.08);
+}
+
+.mission-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.mission-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.criticality-badge {
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crit-p4 { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.crit-p3 { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+.crit-p2 { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.crit-p1 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+.mission-id {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.vehicle-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.mission-status-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid #a7f3d0;
+}
+
+.mission-patient-block {
+  margin-bottom: 14px;
+}
+
+.patient-cond {
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 3px;
+}
+
+.patient-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.conflict-resolution-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.conflict-resolution-banner p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.route-timeline-box {
+  background: #0f172a;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.timeline-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.timeline-nodes-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.timeline-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.node-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #334155;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.timeline-node.current .node-circle {
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+}
+
+.node-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.corridor-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.app-tag {
+  font-size: 9px;
+  color: #38bdf8;
+}
+
+.node-arrow {
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.mission-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  flex-wrap: wrap;
+}
+
+.driver-phone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.status-progress-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-step-progress {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.btn-step-progress:hover {
+  background: #d1fae5;
+}
+
+.btn-step-complete {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 0;
+  background: #10b981;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* =========================================================================
+   GOVERNMENT COMMAND CENTER STYLES
+   ========================================================================= */
+.gov-command-container {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.command-stat-box {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 10px 18px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.command-stat-box .stat-num {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.command-stat-box .stat-lbl {
+  font-size: 10px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.command-grid-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 26px;
+}
+
+.junction-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.junction-matrix-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.junction-matrix-card:hover {
+  transform: translateY(-2px);
+  border-color: #94a3b8;
+  box-shadow: 0 6px 18px rgba(30, 41, 59, 0.06);
+}
+
+.junction-matrix-card.selected-matrix {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px #0284c7;
+}
+
+.matrix-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.j-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0284c7;
+  display: block;
+}
+
+.j-name {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.beacon-pill-amb {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 3px 6px;
+  border-radius: 99px;
+  background: #dcfce7;
+  color: #15803d;
+  letter-spacing: 0.03em;
+}
+
+.beacon-pill-inc {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 3px 6px;
+  border-radius: 99px;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.matrix-stats-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.matrix-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.matrix-stat .label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.matrix-stat .value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.matrix-approaches-mini {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.app-mini-pill {
+  padding: 4px;
+  text-align: center;
+  border-radius: 6px;
+  background: #e2e8f0;
+  font-size: 10px;
+  font-weight: 800;
+  color: #475569;
+}
+
+.app-mini-pill.active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.btn-inspect-junction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+.command-dual-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.command-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.panel-title h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.panel-empty-text {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.panel-items-list {
+  display: grid;
+  gap: 10px;
+}
+
+.panel-log-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.panel-log-item.green-border {
+  border-left: 4px solid #10b981;
+}
+
+.panel-log-item.red-border {
+  border-left: 4px solid #ef4444;
+}
+
+.log-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.log-desc {
+  font-size: 12px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.log-route {
+  font-size: 11px;
+}
+
+/* =========================================================================
+   ANIMATED AMBULANCE GREEN WAVE MAP TRAIL
+   ========================================================================= */
+.animated-greenwave-line {
+  animation: greenWaveFlow 0.8s linear infinite;
+}
+
+@keyframes greenWaveFlow {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+.pulse-greenwave {
+  animation: pulseGreen 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseGreen {
+  0% { r: 12; opacity: 1; }
+  50% { r: 18; opacity: 0.6; }
+  100% { r: 12; opacity: 1; }
+}
+
+/* =========================================================================
+   PORTAL GATEWAY LANDING PAGE STYLES
+   ========================================================================= */
+.landing-page-container {
+  display: grid;
+  gap: 32px;
+  padding: 20px 0 40px;
+}
+
+.landing-hero {
+  text-align: center;
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.landing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #0e7490;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.landing-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.landing-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.landing-portals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.portal-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(30, 41, 59, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(30, 41, 59, 0.12);
+}
+
+.portal-card.public-card {
+  border-top: 5px solid #0284c7;
+}
+
+.portal-card.public-card:hover {
+  border-color: #0284c7;
+}
+
+.portal-card.emergency-card {
+  border-top: 5px solid #10b981;
+}
+
+.portal-card.emergency-card:hover {
+  border-color: #10b981;
+}
+
+.portal-card.gov-card {
+  border-top: 5px solid #1e293b;
+}
+
+.portal-card.gov-card:hover {
+  border-color: #1e293b;
+}
+
+.portal-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portal-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.public-icon {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.emergency-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.gov-icon {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.portal-access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.portal-access-badge.open {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.portal-access-badge.auth-needed {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.portal-access-badge.gov-needed {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.portal-card-body h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.portal-card-body p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.portal-feature-list {
+  display: grid;
+  gap: 8px;
+}
+
+.feat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.sub-agencies-badge-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.sub-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.sub-badge.hosp { background: #fee2e2; color: #b91c1c; }
+.sub-badge.fire { background: #ffedd5; color: #c2410c; }
+.sub-badge.police { background: #e0f2fe; color: #0369a1; }
+
+.btn-portal-enter {
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 0;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.public-btn {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+}
+
+.public-btn:hover {
+  background: #0284c7;
+}
+
+.emergency-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.gov-btn {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);
+}
+
+/* =========================================================================
+   PUBLIC CITIZEN PORTAL STYLES
+   ========================================================================= */
+.public-portal-container {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.public-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0c4a6e, #0284c7 50%, #0369a1);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.15);
+  flex-wrap: wrap;
+}
+
+.public-hero-left .public-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.public-hero-left h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.public-hero-left p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.92;
+  max-width: 660px;
+  line-height: 1.5;
+}
+
+.btn-public-report-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: 0;
+  background: #ef4444;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  transition: transform 0.15s;
+}
+
+.btn-public-report-hero:hover {
+  transform: scale(1.04);
+}
+
+.btn-main-text {
+  font-size: 14px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.btn-sub-text {
+  font-size: 10px;
+  opacity: 0.9;
+  text-align: left;
+}
+
+.public-map-wrapper {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.public-section-header {
+  margin-bottom: 16px;
+}
+
+.public-advisories-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 26px;
+}
+
+.advisory-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.btn-report-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 0;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.empty-advisories {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.empty-advisories h4 {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.empty-advisories p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.public-advisories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.public-advisory-pill {
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #f97316;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fffaf0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.advisory-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.badge-hazard-type {
+  font-weight: 900;
+  color: #c2410c;
+  text-transform: uppercase;
+}
+
+.badge-junc {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.advisory-road {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.advisory-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.advisory-detour-route {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #b45309;
+}
+
+/* =========================================================================
+   EMERGENCY DEPARTMENT SELECTOR BAR
+   ========================================================================= */
+.emergency-dept-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dept-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.dept-btn:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.dept-btn.active.hosp {
+  border-color: #ef4444;
+  background: #fef2f2;
+  box-shadow: 0 0 0 2px #ef4444;
+}
+
+.dept-btn.active.fire {
+  border-color: #f97316;
+  background: #fff7ed;
+  box-shadow: 0 0 0 2px #f97316;
+}
+
+.dept-btn.active.disaster {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 2px #0284c7;
+}
+
+.dept-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.dept-sub {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.btn-gateway-switch {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+.gov-nav-tabs {
+  margin-bottom: 20px;
+}
+
+
+
 

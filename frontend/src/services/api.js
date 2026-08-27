@@ -155,4 +155,73 @@ export const api = {
     if (!res.ok) throw new Error('Failed to clear weather override');
     return res.json();
   },
+
+  // Auth & Roles
+  async getAuthProfiles() {
+    const res = await fetch(`${API_BASE}/auth/profiles`);
+    if (!res.ok) throw new Error('Failed to fetch auth profiles');
+    return res.json();
+  },
+
+  async loginRole(role, username, password, organizationName = null) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        role,
+        username,
+        password,
+        organization_name: organizationName,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
+      throw new Error(err.detail || 'Authentication failed');
+    }
+    return res.json();
+  },
+
+  // Ambulance & Emergency Green Wave
+  async registerAmbulance(data) {
+    const res = await fetch(`${API_BASE}/ambulances/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to register ambulance mission' }));
+      throw new Error(err.detail || 'Failed to register ambulance mission');
+    }
+    return res.json();
+  },
+
+  async listAmbulances(status = null, hospitalName = null) {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (hospitalName) params.set('hospital_name', hospitalName);
+    const suffix = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE}/ambulances${suffix}`);
+    if (!res.ok) throw new Error('Failed to fetch ambulance missions');
+    return res.json();
+  },
+
+  async getAmbulanceMission(missionId) {
+    const res = await fetch(`${API_BASE}/ambulances/${missionId}`);
+    if (!res.ok) throw new Error('Failed to fetch ambulance mission');
+    return res.json();
+  },
+
+  async updateAmbulanceStatus(missionId, newStatus) {
+    const res = await fetch(`${API_BASE}/ambulances/${missionId}/status?new_status=${newStatus}`, {
+      method: 'PATCH',
+    });
+    if (!res.ok) throw new Error('Failed to update ambulance status');
+    return res.json();
+  },
+
+  async getJunctionPreemption(junctionId) {
+    const res = await fetch(`${API_BASE}/ambulances/junction/${junctionId}/preemption`);
+    if (!res.ok) throw new Error('Failed to fetch junction preemption status');
+    return res.json();
+  },
 };

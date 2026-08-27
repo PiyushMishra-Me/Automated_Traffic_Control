@@ -20,6 +20,7 @@ export default function LiveJunctionMap({
   selectedJunction = 'J-01', 
   onSelectJunction, 
   incidents = [],
+  activeAmbulances = [],
   weatherData = null,
   onOpenReportModal
 }) {
@@ -32,6 +33,7 @@ export default function LiveJunctionMap({
     traffic: true,
     corridors: true,
     diversions: true,
+    ambulances: true,
     weather: true
   });
 
@@ -278,6 +280,48 @@ export default function LiveJunctionMap({
                 >
                   DETOUR ➔ {inc.diversion_plan.recommended_reroute_corridor}
                 </text>
+              </g>
+            );
+          })}
+
+          {/* Active Emergency Ambulance Green Wave Corridors */}
+          {activeLayers.ambulances && activeAmbulances.filter(a => a.status !== 'MISSION_ACCOMPLISHED').map(amb => {
+            const originJ = junctions.find(j => j.junction_id === amb.origin_junction_id);
+            const destJ = junctions.find(j => j.junction_id === amb.destination_junction_id);
+            if (!originJ || !destJ) return null;
+
+            const p1 = projectCoords(originJ.latitude, originJ.longitude);
+            const p2 = projectCoords(destJ.latitude, destJ.longitude);
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2 - 15;
+
+            return (
+              <g key={`amb-corridor-${amb.mission_id}`}>
+                {/* Neon Green Glow Base */}
+                <line 
+                  x1={p1.x} y1={p1.y} 
+                  x2={p2.x} y2={p2.y} 
+                  stroke="rgba(16, 185, 129, 0.25)" 
+                  strokeWidth="14" 
+                  strokeLinecap="round" 
+                />
+                {/* Fast Animated Green Wave */}
+                <line 
+                  x1={p1.x} y1={p1.y} 
+                  x2={p2.x} y2={p2.y} 
+                  stroke="#10b981" 
+                  strokeWidth="3.5" 
+                  strokeDasharray="6,10" 
+                  className="animated-greenwave-line" 
+                />
+                {/* Ambulance Vehicle Marker */}
+                <g transform={`translate(${midX}, ${midY})`} className="ambulance-map-pin">
+                  <circle r="14" fill="#065f46" stroke="#34d399" strokeWidth="2" className="pulse-greenwave" />
+                  <text y="4" textAnchor="middle" fontSize="13">🚑</text>
+                  <text y="-18" textAnchor="middle" fill="#34d399" fontSize="9" fontWeight="800" className="font-mono">
+                    {amb.mission_id} ({amb.criticality === 'CRITICAL_LIFE_THREATENING' ? 'P4-CRITICAL' : amb.criticality})
+                  </text>
+                </g>
               </g>
             );
           })}
