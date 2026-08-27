@@ -164,8 +164,6 @@ class VehicleTracker:
             iou=self.iou_threshold,
             imgsz=settings.INFERENCE_IMAGE_SIZE,
             classes=self.target_classes,
-            imgsz=960,
-            device=0,
             verbose=False
         )
 
