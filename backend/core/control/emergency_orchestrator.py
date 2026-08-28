@@ -184,8 +184,9 @@ class EmergencyOrchestrator:
                 approach=first_app,
                 eta=first_eta,
                 vehicle_type=vehicle_type,
+                pre_informed=True,
                 timestamp=time.time(),
-                tracking_metadata={"mission_id": mission_id, "origin": origin_junction_id}
+                tracking_metadata={"mission_id": mission_id, "origin": origin_junction_id, "pre_informed": True}
             )
         )
 
@@ -350,8 +351,9 @@ class EmergencyOrchestrator:
                 approach=context.current_approach,
                 eta=next_eta,
                 vehicle_type=context.vehicle_type,
+                pre_informed=True,
                 timestamp=event.timestamp,
-                tracking_metadata={"handoff_from": event.source_junction_id}
+                tracking_metadata={"handoff_from": event.source_junction_id, "pre_informed": True}
             )
         )
 

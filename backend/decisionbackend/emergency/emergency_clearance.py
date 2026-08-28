@@ -93,7 +93,7 @@ def check_emergency_trigger_conditions(
     if eta <= t_clear_with_margin:
         return True, f"Case A: ETA ({eta:.1f}s) <= T_clear+3 ({t_clear_with_margin:.1f}s)"
 
-    urgency_gap = t_clear_with_margin - eta
+    urgency_gap = eta - t_clear_with_margin
     if urgency_gap < (g_min + margin):
         return True, f"Case B: Urgency gap ({urgency_gap:.1f}s) < G_min+3 ({g_min + margin:.1f}s) [ETA: {eta:.1f}s, T_clear: {t_clear:.1f}s]"
 

@@ -13,6 +13,7 @@ from backend.decisionbackend.emergency.integration_tests import (
     TestCameraIntegrationPhase4A,
     TestVisionEmergencyBridgePhase4B,
     TestEmergencyOrchestratorPhase5,
+    TestUnannouncedEmergencyPhase5_1,
 )
 
 if __name__ == "__main__":

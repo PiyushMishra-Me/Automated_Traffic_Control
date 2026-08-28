@@ -62,6 +62,17 @@ class CameraIntegrationAdapter:
             logger.warning(f"Rejected invalid EmergencyDetectionEvent: {err}")
             return False
 
+        # Determine pre_informed status:
+        existing_notice = self.controller.get_notice(event.emergency_id)
+        if existing_notice is not None:
+            pre_informed = existing_notice.pre_informed
+        else:
+            pre_informed = getattr(event, "pre_informed", False)
+            if "pre_informed" in event.tracking_metadata:
+                pre_informed = bool(event.tracking_metadata["pre_informed"])
+            elif "mission_id" in event.tracking_metadata or "handoff_from" in event.tracking_metadata:
+                pre_informed = True
+
         # Convert event to EmergencyNotice domain entity
         notice = EmergencyNotice(
             emergency_id=event.emergency_id,
@@ -69,13 +80,14 @@ class CameraIntegrationAdapter:
             current_eta=float(event.eta),
             vehicle_type=event.vehicle_type,
             target_lane=event.lane_id,
+            pre_informed=pre_informed,
             created_at=event.timestamp,
             updated_at=event.timestamp
         )
 
         self.controller.submit_emergency(notice)
         self.event_log.append(event)
-        logger.info(f"Registered emergency notice {event.emergency_id} on {event.approach.value} at {event.junction_id} (ETA: {event.eta}s)")
+        logger.info(f"Registered emergency notice {event.emergency_id} on {event.approach.value} at {event.junction_id} (ETA: {event.eta}s, Pre-informed: {pre_informed})")
         return True
 
     def on_emergency_eta_updated(self, event: EmergencyEtaUpdateEvent) -> bool:

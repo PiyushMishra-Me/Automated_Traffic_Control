@@ -29,6 +29,7 @@ class EmergencyDetectionEvent:
     timestamp: float = field(default_factory=time.time)
     lane_id: Optional[str] = None
     confidence: float = 1.0
+    pre_informed: bool = False
     tracking_metadata: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self) -> Tuple[bool, str]:

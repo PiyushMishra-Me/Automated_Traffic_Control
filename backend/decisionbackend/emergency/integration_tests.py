@@ -11,7 +11,9 @@ from backend.models.traffic_schemas import ApproachEnum, MovementStateEnum
 from backend.models.ambulance_schemas import AmbulanceStatusEnum
 from backend.core.vision.tracker import TrackedVehicle
 from backend.core.vision.emergency_bridge import EmergencyVisionBridge
-from backend.decisionbackend.models import Approach, PhaseState
+from backend.decisionbackend.models import Approach, PhaseState, DirectionTraffic, SignalColor
+from backend.decisionbackend.junction_config import JunctionConfig
+from backend.core.control.emergency_orchestrator import EmergencyOrchestrator
 from backend.decisionbackend.emergency.emergency_models import (
     EmergencyVehicleType,
     EmergencyState,
@@ -708,6 +710,263 @@ class TestEmergencyOrchestratorPhase5(unittest.TestCase):
         self.assertTrue(ctx.is_completed)
 
 
+class TestUnannouncedEmergencyPhase5_1(unittest.TestCase):
+    """
+    Phase 5.1 Test Suite — Unannounced / Immediate Emergency Preemption (Case C).
+    Covers deterministic unit tests TEST C1 through TEST C15.
+    """
+
+    def setUp(self):
+        self.config = JunctionConfig()
+        self.controller = EmergencyController(config=self.config, initial_green=Approach.NORTH)
+        self.inputs = {
+            Approach.NORTH: DirectionTraffic(direction=Approach.NORTH, vehicle_counts={"car": 8}, queue_pcu=8.0, flow_rate=3.0),
+            Approach.SOUTH: DirectionTraffic(direction=Approach.SOUTH, vehicle_counts={"car": 4}, queue_pcu=4.0, flow_rate=2.0),
+            Approach.EAST: DirectionTraffic(direction=Approach.EAST, vehicle_counts={"car": 3}, queue_pcu=3.0, flow_rate=1.0),
+            Approach.WEST: DirectionTraffic(direction=Approach.WEST, vehicle_counts={"car": 2}, queue_pcu=2.0, flow_rate=1.0),
+        }
+
+    def test_c1_unannounced_emergency_detected_before_g_min(self):
+        """TEST C1: Unannounced emergency detected before G_MIN keeps current green active."""
+        # NORTH has been green for 3 seconds (< G_MIN of 10s)
+        self.controller.state.time_in_phase = 3.0
+        self.controller.create_and_register_notice(
+            emergency_id="UNANNOUNCED-01",
+            approach=Approach.EAST,
+            initial_eta=15.0,
+            pre_informed=False
+        )
+
+        decision = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(decision.active_phase, PhaseState.GREEN)
+        self.assertEqual(decision.current_green, Approach.NORTH)
+        self.assertFalse(decision.is_switch_in_progress)
+        self.assertIn("Holding NORTH green for G_MIN", decision.reason)
+
+    def test_c2_g_min_becomes_satisfied(self):
+        """TEST C2: When G_MIN becomes satisfied, emergency preemption becomes eligible immediately."""
+        self.controller.create_and_register_notice(
+            emergency_id="UNANNOUNCED-02",
+            approach=Approach.EAST,
+            initial_eta=15.0,
+            pre_informed=False
+        )
+        # Advance NORTH green to 10.0s (exact G_MIN)
+        self.controller.state.time_in_phase = 9.0
+        decision1 = self.controller.step(self.inputs, dt=1.0)  # Reaches 10.0s
+
+        # At G_MIN satisfied, next step immediately triggers transition to YELLOW
+        decision2 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(decision2.active_phase, PhaseState.YELLOW)
+        self.assertEqual(decision2.next_green_candidate, Approach.EAST)
+        self.assertTrue(decision2.is_switch_in_progress)
+        self.assertIn("Case C", decision2.reason)
+
+    def test_c3_unannounced_emergency_detected_after_g_min(self):
+        """TEST C3: Unannounced emergency detected after G_MIN triggers immediate transition toward YELLOW."""
+        self.controller.state.time_in_phase = 14.0  # Already > G_MIN (10.0s)
+        self.controller.create_and_register_notice(
+            emergency_id="UNANNOUNCED-03",
+            approach=Approach.SOUTH,
+            initial_eta=20.0,
+            pre_informed=False
+        )
+
+        decision = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(decision.active_phase, PhaseState.YELLOW)
+        self.assertEqual(decision.next_green_candidate, Approach.SOUTH)
+        self.assertTrue(decision.is_switch_in_progress)
+
+    def test_c4_clearance_sequence_remains_green_yellow_allred_emergency_green(self):
+        """TEST C4: Safe clearance sequence remains strictly GREEN -> YELLOW -> ALL_RED -> EMERGENCY GREEN."""
+        self.controller.state.time_in_phase = 10.0
+        self.controller.create_and_register_notice("UNANNOUNCED-04", Approach.EAST, 12.0, pre_informed=False)
+
+        # Step 1: GREEN -> YELLOW
+        d1 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d1.active_phase, PhaseState.YELLOW)
+
+        # Step 2 & 3: YELLOW clearance (3.0s total)
+        d2 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d2.active_phase, PhaseState.YELLOW)
+        d3 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d3.active_phase, PhaseState.YELLOW)
+
+        # Step 4: YELLOW completes -> ALL_RED
+        d4 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d4.active_phase, PhaseState.ALL_RED)
+
+        # Step 5: ALL_RED clearance (2.0s total)
+        d5 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d5.active_phase, PhaseState.ALL_RED)
+
+        # Step 6: ALL_RED completes -> EMERGENCY GREEN on EAST
+        d6 = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(d6.active_phase, PhaseState.GREEN)
+        self.assertEqual(d6.current_green, Approach.EAST)
+        self.assertTrue(self.controller.is_emergency_active)
+
+    def test_c5_emergency_cannot_directly_switch_green_to_emergency_green(self):
+        """TEST C5: Emergency cannot directly switch GREEN -> EMERGENCY GREEN in a single step."""
+        self.controller.state.time_in_phase = 15.0
+        self.controller.create_and_register_notice("UNANNOUNCED-05", Approach.WEST, 10.0, pre_informed=False)
+
+        decision = self.controller.step(self.inputs, dt=1.0)
+        # Must not directly jump to GREEN on WEST
+        self.assertNotEqual(decision.active_phase, PhaseState.GREEN)
+        self.assertEqual(decision.active_phase, PhaseState.YELLOW)
+        self.assertIsNone(decision.current_green)
+
+    def test_c6_emergency_gets_emergency_green_at_earliest_safe_opportunity(self):
+        """TEST C6: Emergency gets emergency green at earliest safe opportunity (exact yellow + all_red duration)."""
+        self.controller.state.time_in_phase = 10.0
+        self.controller.create_and_register_notice("UNANNOUNCED-06", Approach.EAST, 15.0, pre_informed=False)
+
+        # Start transition
+        self.controller.step(self.inputs, dt=1.0)  # switches to YELLOW, remaining = 3.0s
+        # Advance through yellow (3s) and all-red (2s)
+        for _ in range(3):
+            self.controller.step(self.inputs, dt=1.0)  # yellow finishes, all_red entered (remaining = 2.0s)
+        for _ in range(2):
+            self.controller.step(self.inputs, dt=1.0)  # all-red finishes
+
+        self.assertEqual(self.controller.state.phase_state, PhaseState.GREEN)
+        self.assertEqual(self.controller.state.active_approach, Approach.EAST)
+
+    def test_c7_single_green_invariant_remains_true(self):
+        """TEST C7: Single-green invariant remains true across entire unannounced emergency sequence."""
+        self.controller.state.time_in_phase = 5.0
+        self.controller.create_and_register_notice("UNANNOUNCED-07", Approach.SOUTH, 18.0, pre_informed=False)
+
+        for _ in range(25):
+            dec = self.controller.step(self.inputs, dt=1.0)
+            green_count = sum(1 for color in dec.signal_states.values() if color == SignalColor.GREEN)
+            self.assertLessEqual(green_count, 1)
+
+    def test_c8_existing_pre_informed_emergency_behavior_remains_unchanged(self):
+        """TEST C8: Existing pre-informed emergency behavior remains unchanged (does not trigger before Case A/B)."""
+        self.controller.state.time_in_phase = 12.0
+        # Pre-informed emergency with ETA = 50.0s and 0 queue (T_clear = 0.0s, T_clear+3 = 3.0s << 50.0s)
+        self.controller.create_and_register_notice("PRE-INFORMED-08", Approach.EAST, 50.0, pre_informed=True)
+
+        dec = self.controller.step(self.inputs, dt=1.0)
+        # Should NOT trigger Case C because pre_informed=True and ETA (49s) is not near trigger conditions
+        self.assertFalse(self.controller.is_emergency_active)
+
+    def test_c9_unannounced_emergency_does_not_modify_unrelated_junction_controllers(self):
+        """TEST C9: Unannounced emergency detected at J-01 does not modify unrelated junction controllers (J-02)."""
+        orchestrator = EmergencyOrchestrator()
+        j1_adapter = orchestrator.get_or_create_junction_adapter("J-01")
+        j2_adapter = orchestrator.get_or_create_junction_adapter("J-02")
+
+        # Unannounced emergency arrives locally at J-01
+        event = EmergencyDetectionEvent(
+            emergency_id="UNANNOUNCED-J1",
+            junction_id="J-01",
+            approach=Approach.EAST,
+            eta=10.0,
+            pre_informed=False
+        )
+        j1_adapter.on_emergency_detected(event)
+
+        j1_ctrl = orchestrator.get_or_create_junction_controller("J-01")
+        j2_ctrl = orchestrator.get_or_create_junction_controller("J-02")
+
+        self.assertIsNotNone(j1_ctrl.get_notice("UNANNOUNCED-J1"))
+        self.assertFalse(j1_ctrl.get_notice("UNANNOUNCED-J1").pre_informed)
+        self.assertIsNone(j2_ctrl.get_notice("UNANNOUNCED-J1"))
+
+    def test_c10_multiple_unannounced_emergencies_compatible_with_phase3_conflict_resolution(self):
+        """TEST C10: Multiple unannounced emergencies resolve conflicts using Phase 3 4-tier logic (lower ETA wins)."""
+        self.controller.state.time_in_phase = 12.0
+        self.controller.create_and_register_notice("UNANNOUNCED-E", Approach.EAST, 15.0, pre_informed=False)
+        self.controller.create_and_register_notice("UNANNOUNCED-S", Approach.SOUTH, 8.0, pre_informed=False)
+
+        # SOUTH has lower ETA (8s vs 15s) -> SOUTH should win conflict
+        decision = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(decision.active_phase, PhaseState.YELLOW)
+        self.assertEqual(decision.next_green_candidate, Approach.SOUTH)
+        self.assertEqual(self.controller.active_emergency_id, "UNANNOUNCED-S")
+
+    def test_c11_emergency_passage_still_correctly_completes_emergency_episode(self):
+        """TEST C11: Emergency passage still correctly completes the emergency episode."""
+        self.controller.state.time_in_phase = 10.0
+        self.controller.create_and_register_notice("UNANNOUNCED-11", Approach.EAST, 5.0, pre_informed=False)
+
+        # Transition to EAST green
+        for _ in range(6):
+            self.controller.step(self.inputs, dt=1.0)
+
+        self.assertEqual(self.controller.state.active_approach, Approach.EAST)
+        self.assertTrue(self.controller.is_emergency_active)
+
+        # Confirm passage via camera event
+        self.controller.ambulance_passed("UNANNOUNCED-11")
+        self.inputs[Approach.EAST].queue_pcu = 0.0
+
+        # Next step should conclude emergency
+        dec = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(dec.active_phase, PhaseState.YELLOW)
+        self.assertFalse(self.controller.is_emergency_active)
+        self.assertIn("UNANNOUNCED-11", [n.emergency_id for n in self.controller.current_episode.passed_notices])
+
+    def test_c12_emergency_dismissal_timeout_returns_controller_to_normal(self):
+        """TEST C12: Emergency dismissal/timeout returns controller to normal operation."""
+        notice = self.controller.create_and_register_notice("UNANNOUNCED-12", Approach.WEST, 0.0, pre_informed=False)
+        notice.overdue_seconds = 16.0  # Exceeds 15.0s dismissal timeout
+
+        self.controller.tick(1.0)
+        self.assertNotIn("UNANNOUNCED-12", self.controller.current_episode.active_notices)
+        self.assertEqual(notice.state, EmergencyState.DISMISSED)
+        self.assertEqual(len(self.controller.current_episode.dismissed_notices), 1)
+
+    def test_c13_normal_traffic_behavior_remains_unchanged_without_emergency(self):
+        """TEST C13: Normal traffic behavior remains unchanged when there is no emergency."""
+        self.controller.state.time_in_phase = 2.0
+        dec = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(dec.active_phase, PhaseState.GREEN)
+        self.assertEqual(dec.current_green, Approach.NORTH)
+        self.assertFalse(self.controller.is_emergency_active)
+
+    def test_c14_case_c_works_via_phase4a_adapter_and_bridge_interface(self):
+        """TEST C14: Case C works correctly through Phase 4A adapter & Phase 4B bridge interface."""
+        adapter = CameraIntegrationAdapter(controller=self.controller, junction_id="J-01")
+        bridge = EmergencyVisionBridge(adapter=adapter, junction_id="J-01", approach=ApproachEnum.SOUTH)
+
+        # External local vision detection event without prior registration
+        det_event = EmergencyDetectionEvent(
+            emergency_id="AMB-VISION-UNANNOUNCED",
+            junction_id="J-01",
+            approach=Approach.SOUTH,
+            eta=12.0,
+            pre_informed=False
+        )
+        success = adapter.on_emergency_detected(det_event)
+        self.assertTrue(success)
+
+        notice = self.controller.get_notice("AMB-VISION-UNANNOUNCED")
+        self.assertIsNotNone(notice)
+        self.assertFalse(notice.pre_informed)
+
+        # Verify controller handles preemption
+        self.controller.state.time_in_phase = 11.0
+        dec = self.controller.step(self.inputs, dt=1.0)
+        self.assertEqual(dec.active_phase, PhaseState.YELLOW)
+        self.assertEqual(dec.next_green_candidate, Approach.SOUTH)
+
+    def test_c15_phase5_multi_junction_orchestration_remains_intact(self):
+        """TEST C15: Phase 5 multi-junction orchestration remains intact with persistent identity and corridor progression."""
+        orchestrator = EmergencyOrchestrator()
+        ctx = orchestrator.register_mission("MSN-501", "AMB-501", "J-01", "J-02")
+        self.assertEqual(ctx.status, AmbulanceStatusEnum.TRANSIT_TO_HOSPITAL)
+
+        j1_ctrl = orchestrator.get_or_create_junction_controller("J-01")
+        j1_notice = j1_ctrl.get_notice("AMB-501")
+        self.assertIsNotNone(j1_notice)
+        self.assertTrue(j1_notice.pre_informed)  # Mission-registered emergency is pre-informed
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

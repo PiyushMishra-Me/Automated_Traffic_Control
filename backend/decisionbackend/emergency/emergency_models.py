@@ -66,6 +66,7 @@ class EmergencyNotice:
     is_passed: bool = False
     target_lane: Optional[str] = None
     destination_approach: Optional[Approach] = None
+    pre_informed: bool = True
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     overdue_seconds: float = 0.0

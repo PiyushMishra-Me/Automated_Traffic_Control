@@ -43,6 +43,7 @@ EmergencyMissionContext / EmergencyOrchestrator (Phase 5)
 * **Phase 4A (Camera & Tracking Event Layer)**: Strongly typed camera/tracking event contracts (`EmergencyDetectionEvent`, `EmergencyEtaUpdateEvent`, `EmergencyPassageEvent`, `DirectionalHandoffEvent`), decoupled `CameraIntegrationAdapter`, input validation, downstream automated handoffs, and test suite.
 * **Phase 4B (Vision-to-Emergency Bridge)**: Direct bridge (`EmergencyVisionBridge`) connecting `VehicleTracker` / `TrackedVehicle` telemetry to `CameraIntegrationAdapter`, live distance/speed ETA calculation, virtual line-crossing passage detection, and `CORRIDOR_MAP` directional handoffs.
 * **Phase 5 (End-to-End Multi-Junction Orchestration)**: Multi-junction coordinator (`EmergencyOrchestrator`), `EmergencyMissionContext` lifecycle, camera-local `track_id` recycling, seamless J1 $\to$ J2 corridor handoffs, independent downstream ETA generation, and simultaneous multi-corridor emergency handling.
+* **Phase 5.1 (Unannounced / Immediate Emergency Preemption)**: Case C unannounced local camera detection, explicit `pre_informed` tracking flag, immediate preemption eligibility upon $G_{min}$ satisfaction, strict clearance safety sequencing ($\text{GREEN} \to \text{YELLOW} \to \text{ALL\_RED} \to \text{EMERGENCY GREEN}$), single-green preservation, and full Phase 3 / Phase 5 compatibility.
 
 ---
 
@@ -60,7 +61,7 @@ EmergencyMissionContext / EmergencyOrchestrator (Phase 5)
 
 ---
 
-## Unit Test Summary (119 Tests)
+## Unit Test Summary (134 Tests)
 
 ```powershell
 python -m unittest backend.decisionbackend.tests backend.decisionbackend.emergency_tests -v
@@ -75,4 +76,5 @@ python -m unittest backend.decisionbackend.tests backend.decisionbackend.emergen
 | **Phase 4A Camera Integration** (`TestCameraIntegrationPhase4A`) | 12 | **PASS** |
 | **Phase 4B Vision Bridge** (`TestVisionEmergencyBridgePhase4B`) | 13 | **PASS** |
 | **Phase 5 Multi-Junction Orchestrator** (`TestEmergencyOrchestratorPhase5`) | 21 | **PASS** |
-| **Total Regression Suite** | **119** | **ALL PASS** (0.111s) |
+| **Phase 5.1 Unannounced Emergency Engine** (`TestUnannouncedEmergencyPhase5_1`) | 15 | **PASS** |
+| **Total Regression Suite** | **134** | **ALL PASS** (0.314s) |

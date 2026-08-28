@@ -156,7 +156,8 @@ class EmergencyController:
         approach: Approach,
         initial_eta: float,
         vehicle_type: EmergencyVehicleType = EmergencyVehicleType.AMBULANCE,
-        target_lane: Optional[str] = None
+        target_lane: Optional[str] = None,
+        pre_informed: bool = True
     ) -> EmergencyNotice:
         """
         Factory helper to create and register an EmergencyNotice.
@@ -166,7 +167,8 @@ class EmergencyController:
             approach=approach,
             current_eta=initial_eta,
             vehicle_type=vehicle_type,
-            target_lane=target_lane
+            target_lane=target_lane,
+            pre_informed=pre_informed
         )
         return self.register_notice(notice)
 
@@ -450,6 +452,17 @@ class EmergencyController:
             self.state.time_in_phase = 0.0
 
         timing = self.config.timing
+
+        # Check if an active/pending emergency notice is already on the current green approach
+        if not self.is_emergency_active:
+            for n in self.current_episode.active_notices.values():
+                if n.approach == curr_green and n.state in (EmergencyState.PENDING, EmergencyState.ACTIVE) and not n.is_passed:
+                    self.is_emergency_active = True
+                    self.active_emergency_id = n.emergency_id
+                    self.emergency_green_elapsed = 0.0
+                    n.mark_active()
+                    break
+
         serving_notice = self.get_notice(self.active_emergency_id) if self.active_emergency_id else None
 
         # =========================================================================
@@ -501,9 +514,14 @@ class EmergencyController:
                     n_traffic = traffic_inputs.get(n.approach, DirectionTraffic(direction=n.approach))
                     n_q = n_traffic.queue_pcu or n_traffic.vehicles_waiting
                     n_tclear = calculate_t_clear(n_q, self.empty_threshold_pcu)
-                    is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
-                    if is_trig:
+                    if not n.pre_informed:
+                        # Case C: Unannounced emergency detection is immediately eligible
                         eligible_candidates.append((n, n_tclear))
+                    else:
+                        # Case A & Case B: Pre-informed Emergency Triggers
+                        is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
+                        if is_trig:
+                            eligible_candidates.append((n, n_tclear))
 
                 target_next_approach = None
                 if eligible_candidates:
@@ -567,9 +585,15 @@ class EmergencyController:
             n_q = n_traffic.queue_pcu or n_traffic.vehicles_waiting
             n.update_queue(n_q)
             n_tclear = calculate_t_clear(n_q, self.empty_threshold_pcu)
-            is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
-            if is_trig:
+            if not n.pre_informed:
+                # Case C: Unannounced Emergency Detection
+                # Immediately eligible for preemption (subject to G_MIN check below)
                 eligible_candidates.append((n, n_tclear))
+            else:
+                # Case A & Case B: Pre-informed Emergency Triggers
+                is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
+                if is_trig:
+                    eligible_candidates.append((n, n_tclear))
 
         if eligible_candidates:
             winner_tuple = resolve_emergency_conflict(
@@ -604,7 +628,11 @@ class EmergencyController:
                     self.is_emergency_active = True
                     self.active_emergency_id = winner_notice.emergency_id
 
-                    switch_reason = f"Emergency override triggered for {emp_app.value} ({winner_notice.emergency_id}) [ETA: {winner_notice.current_eta:.1f}s, T_clear: {winner_tclear:.1f}s]. Terminating {curr_green.value} green."
+                    if not winner_notice.pre_informed:
+                        switch_reason = f"Unannounced emergency (Case C) override triggered for {emp_app.value} ({winner_notice.emergency_id}) [ETA: {winner_notice.current_eta:.1f}s, T_clear: {winner_tclear:.1f}s]. Terminating {curr_green.value} green."
+                    else:
+                        switch_reason = f"Emergency override triggered for {emp_app.value} ({winner_notice.emergency_id}) [ETA: {winner_notice.current_eta:.1f}s, T_clear: {winner_tclear:.1f}s]. Terminating {curr_green.value} green."
+
                     return SignalDecision(
                         active_phase=PhaseState.YELLOW,
                         current_green=None,
@@ -676,9 +704,12 @@ class EmergencyController:
                     n_traffic = traffic_inputs.get(n.approach, DirectionTraffic(direction=n.approach))
                     n_q = n_traffic.queue_pcu or n_traffic.vehicles_waiting
                     n_tclear = calculate_t_clear(n_q, self.empty_threshold_pcu)
-                    is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
-                    if is_trig:
+                    if not n.pre_informed:
                         eligible_candidates_intercept.append((n, n_tclear))
+                    else:
+                        is_trig, _ = check_emergency_trigger_conditions(n.current_eta, n_tclear, timing.g_min)
+                        if is_trig:
+                            eligible_candidates_intercept.append((n, n_tclear))
 
             if eligible_candidates_intercept:
                 winner_tuple = resolve_emergency_conflict(
