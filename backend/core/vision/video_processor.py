@@ -4,7 +4,7 @@ import numpy as np
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from backend.config import settings
 from backend.models.traffic_schemas import ApproachEnum, ApproachTrafficState, CameraConfig, TrafficLevelEnum
 from backend.core.vision.tracker import VehicleTracker
@@ -38,7 +38,8 @@ class VideoProcessor:
         counting_line_config: Optional[dict] = None,
         progress_callback: Optional[Callable[[float, str], None]] = None,
         roi: Optional[list] = None,
-        camera_config: Optional[CameraConfig] = None
+        camera_config: Optional[CameraConfig] = None,
+        emergency_bridge: Optional[Any] = None
     ) -> ApproachTrafficState:
         """
         Process an input traffic video for a specific approach or camera configuration,
@@ -108,6 +109,16 @@ class VideoProcessor:
                 max_queue_length = max(max_queue_length, state.estimated_queue_length)
                 if peak_state is None or state.vehicle_count > peak_state.vehicle_count:
                     peak_state = state.model_copy(deep=True)
+
+                # Process emergency vehicle detection/ETA/passage bridge if configured
+                if emergency_bridge is not None:
+                    emergency_bridge.process_frame(
+                        vehicles=tracked_vehicles,
+                        counting_line_config=metrics_calculator.line_config,
+                        frame_width=width,
+                        frame_height=height,
+                        fps=fps
+                    )
 
                 # Draw Visual Annotations
                 annotated_frame = self._annotate_frame(

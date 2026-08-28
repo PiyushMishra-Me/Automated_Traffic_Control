@@ -9,6 +9,7 @@ from backend.models.traffic_schemas import ApproachEnum, ProcessingJobStatus, Ap
 from backend.core.vision.video_processor import VideoProcessor
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.db.repositories.junction_repo import junction_repo
+from backend.core.control.emergency_orchestrator import emergency_orchestrator
 
 router = APIRouter(prefix="/api/videos", tags=["Video Processing"])
 
@@ -37,12 +38,16 @@ def _run_processing_job(job_id: str, input_path: Path, output_path: Path, juncti
         if j_doc and "custom_counting_lines" in j_doc:
             counting_line = j_doc["custom_counting_lines"].get(approach.value)
 
+        # Get vision bridge for this junction camera
+        bridge = emergency_orchestrator.get_or_create_camera_bridge(junction_id, approach)
+
         final_state: ApproachTrafficState = _processor.process_video(
             video_path=input_path,
             approach=approach,
             output_path=output_path,
             counting_line_config=counting_line,
-            progress_callback=update_progress
+            progress_callback=update_progress,
+            emergency_bridge=bridge
         )
 
         final_state.annotated_video_url = f"/api/videos/annotated/{output_path.name}"
