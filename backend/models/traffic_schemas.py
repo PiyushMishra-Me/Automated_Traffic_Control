@@ -1,13 +1,16 @@
 from enum import Enum
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field, field_validator
+
 
 class ApproachEnum(str, Enum):
     NORTH = "NORTH"
     SOUTH = "SOUTH"
     EAST = "EAST"
     WEST = "WEST"
+
 
 class MovementStateEnum(str, Enum):
     INCOMING = "INCOMING"
@@ -16,6 +19,7 @@ class MovementStateEnum(str, Enum):
     STOPPED_OUTGOING = "STOPPED_OUTGOING"
     PARKED = "PARKED"
     UNKNOWN = "UNKNOWN"
+
 
 class TrafficLevelEnum(str, Enum):
     LOW = "LOW"
@@ -35,22 +39,33 @@ class AlertSeverityEnum(str, Enum):
     WARNING = "WARNING"
     CRITICAL = "CRITICAL"
 
+
 class VehicleClassCounts(BaseModel):
     car: int = 0
     motorcycle: int = 0
     bus: int = 0
     truck: int = 0
+    ambulance: int = 0
+
 
 class CountingLineConfig(BaseModel):
-    p1: List[float] = Field(..., description="Normalized [x1, y1] coordinates (0.0 - 1.0)")
-    p2: List[float] = Field(..., description="Normalized [x2, y2] coordinates (0.0 - 1.0)")
-    orientation: str = "horizontal"  # "horizontal" or "vertical"
+    p1: List[float] = Field(
+        ...,
+        description="Normalized [x1, y1] coordinates (0.0 - 1.0)"
+    )
+    p2: List[float] = Field(
+        ...,
+        description="Normalized [x2, y2] coordinates (0.0 - 1.0)"
+    )
+    orientation: str = "horizontal"
 
     @field_validator("p1", "p2")
     @classmethod
     def validate_normalized_point(cls, point: List[float]) -> List[float]:
         if len(point) != 2 or any(value < 0 or value > 1 for value in point):
-            raise ValueError("Counting-line points must have two normalized coordinates between 0 and 1")
+            raise ValueError(
+                "Counting-line points must have two normalized coordinates between 0 and 1"
+            )
         return point
 
 
@@ -71,50 +86,153 @@ class AnalyticsSummary(BaseModel):
 
 
 class CameraConfig(BaseModel):
-    camera_id: str = Field(..., json_schema_extra={"example": "CAM-J1-NORTH"})
-    junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})
+    camera_id: str = Field(
+        ...,
+        json_schema_extra={"example": "CAM-J1-NORTH"}
+    )
+    junction_id: str = Field(
+        ...,
+        json_schema_extra={"example": "J-MAIN-01"}
+    )
     approach: ApproachEnum = ApproachEnum.NORTH
-    # Normalized ROI [x1, y1, x2, y2] (0.0 to 1.0) or None for full frame
-    roi: Optional[List[float]] = Field(None, description="Normalized ROI [x1, y1, x2, y2] or pixel [x1, y1, x2, y2], or None for full frame")
-    # Junction movement vector [dx, dy] pointing toward the junction in camera image space
-    junction_vector: List[float] = Field(default_factory=lambda: [0.0, 1.0], description="Normalized [dx, dy] pointing toward junction")
-    # Virtual counting line configuration
+
+    roi: Optional[List[float]] = Field(
+        None,
+        description=(
+            "Normalized ROI [x1, y1, x2, y2] or "
+            "pixel [x1, y1, x2, y2], or None for full frame"
+        ),
+    )
+
+    junction_vector: List[float] = Field(
+        default_factory=lambda: [0.0, 1.0],
+        description="Normalized [dx, dy] pointing toward junction",
+    )
+
     counting_line: Optional[CountingLineConfig] = None
-    # Optional polygon corridors in normalized coordinates [[x,y], [x,y], ...]
-    incoming_corridor: Optional[List[List[float]]] = Field(None, description="Normalized polygon for incoming traffic corridor")
-    outgoing_corridor: Optional[List[List[float]]] = Field(None, description="Normalized polygon for outgoing traffic corridor")
+
+    incoming_corridor: Optional[List[List[float]]] = Field(
+        None,
+        description="Normalized polygon for incoming traffic corridor",
+    )
+
+    outgoing_corridor: Optional[List[List[float]]] = Field(
+        None,
+        description="Normalized polygon for outgoing traffic corridor",
+    )
+
     fps: float = 25.0
     is_bidirectional: bool = False
 
+
 class ApproachTrafficState(BaseModel):
     approach: ApproachEnum
-    vehicle_count: int = Field(0, description="Active vehicles in current frame / scene (excluding parked)")
-    class_counts: Dict[str, int] = Field(default_factory=lambda: {"car": 0, "motorcycle": 0, "bus": 0, "truck": 0})
-    density: float = Field(0.0, description="Density index (0.0 to 1.0)")
-    estimated_queue_length: int = Field(0, description="Estimated count of stationary / queued vehicles")
-    flow: float = Field(0.0, description="Traffic flow rate (cumulative vehicles counted crossing the line)")
+
+    vehicle_count: int = Field(
+        0,
+        description="Active vehicles in current frame / scene (excluding parked)",
+    )
+
+    class_counts: Dict[str, int] = Field(
+        default_factory=lambda: {
+            "car": 0,
+            "motorcycle": 0,
+            "bus": 0,
+            "truck": 0,
+            "ambulance": 0,
+        }
+    )
+
+    # Emergency vehicle information
+    ambulance_count: int = Field(
+        0,
+        description="Number of active ambulances detected",
+    )
+
+    emergency_detected: bool = Field(
+        False,
+        description="True when at least one ambulance is detected",
+    )
+
+    density: float = Field(
+        0.0,
+        description="Density index (0.0 to 1.0)",
+    )
+
+    estimated_queue_length: int = Field(
+        0,
+        description="Estimated count of stationary / queued vehicles",
+    )
+
+    flow: float = Field(
+        0.0,
+        description="Traffic flow rate (cumulative vehicles counted crossing the line)",
+    )
+
     traffic_level: TrafficLevelEnum = TrafficLevelEnum.LOW
     processed_frames: int = 0
     total_unique_vehicles: int = 0
+
     # Directional movement metrics
-    incoming_count: int = Field(0, description="Active incoming vehicles (moving + stopped)")
-    outgoing_count: int = Field(0, description="Active outgoing vehicles (moving + stopped)")
-    stopped_incoming_count: int = Field(0, description="Stopped vehicles that were incoming")
-    stopped_outgoing_count: int = Field(0, description="Stopped vehicles that were outgoing")
-    parked_count: int = Field(0, description="Parked vehicles (stationary > 5 mins)")
-    unknown_direction_count: int = Field(0, description="Vehicles with unknown movement state")
-    incoming_flow: float = Field(0.0, description="Cumulative incoming vehicles crossing counting line")
-    outgoing_flow: float = Field(0.0, description="Cumulative outgoing vehicles crossing counting line")
+    incoming_count: int = Field(
+        0,
+        description="Active incoming vehicles (moving + stopped)",
+    )
+
+    outgoing_count: int = Field(
+        0,
+        description="Active outgoing vehicles (moving + stopped)",
+    )
+
+    stopped_incoming_count: int = Field(
+        0,
+        description="Stopped vehicles that were incoming",
+    )
+
+    stopped_outgoing_count: int = Field(
+        0,
+        description="Stopped vehicles that were outgoing",
+    )
+
+    parked_count: int = Field(
+        0,
+        description="Parked vehicles (stationary > 5 mins)",
+    )
+
+    unknown_direction_count: int = Field(
+        0,
+        description="Vehicles with unknown movement state",
+    )
+
+    incoming_flow: float = Field(
+        0.0,
+        description="Cumulative incoming vehicles crossing counting line",
+    )
+
+    outgoing_flow: float = Field(
+        0.0,
+        description="Cumulative outgoing vehicles crossing counting line",
+    )
+
     annotated_video_url: Optional[str] = None
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
 
 class JunctionTrafficState(BaseModel):
     junction_id: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
     north: Optional[ApproachTrafficState] = None
     south: Optional[ApproachTrafficState] = None
     east: Optional[ApproachTrafficState] = None
     west: Optional[ApproachTrafficState] = None
+
     total_active_vehicles: int = 0
     aggregate_level: TrafficLevelEnum = TrafficLevelEnum.LOW
 
@@ -136,26 +254,52 @@ class SignalRecommendation(BaseModel):
     rationale: str
     alerts: List[TrafficAlert] = Field(default_factory=list)
     is_simulation: bool = True
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 class SignalSimulationRequest(BaseModel):
     current_phase: SignalPhaseEnum = SignalPhaseEnum.ALL_RED
-    # Simulated wall-clock horizon in seconds. Both the adaptive run and the
-    # fixed-timer baseline are simulated over this same horizon for a fair
-    # comparison. One timeline snapshot is emitted per simulated second.
-    horizon_seconds: int = Field(180, ge=30, le=600)
+
+    horizon_seconds: int = Field(
+        180,
+        ge=30,
+        le=600,
+    )
 
 
 class SimulationStep(BaseModel):
     """A single one-second snapshot of the adaptive simulation timeline."""
-    t: int = Field(..., description="Elapsed simulated seconds")
+
+    t: int = Field(
+        ...,
+        description="Elapsed simulated seconds",
+    )
+
     phase: SignalPhaseEnum
     phase_label: str
-    phase_time_remaining: int = Field(0, description="Seconds left in the current phase")
-    lights: Dict[str, str] = Field(..., description="Approach -> GREEN | YELLOW | RED")
-    queues: Dict[str, int] = Field(..., description="Approach -> vehicles currently queued")
-    served_total: int = Field(0, description="Cumulative vehicles discharged so far")
+
+    phase_time_remaining: int = Field(
+        0,
+        description="Seconds left in the current phase",
+    )
+
+    lights: Dict[str, str] = Field(
+        ...,
+        description="Approach -> GREEN | YELLOW | RED",
+    )
+
+    queues: Dict[str, int] = Field(
+        ...,
+        description="Approach -> vehicles currently queued",
+    )
+
+    served_total: int = Field(
+        0,
+        description="Cumulative vehicles discharged so far",
+    )
 
 
 class ApproachSimSummary(BaseModel):
@@ -164,16 +308,25 @@ class ApproachSimSummary(BaseModel):
     served: int = 0
     max_queue: int = 0
     final_queue: int = 0
-    avg_wait: float = Field(0.0, description="Average delay per vehicle (seconds)")
+
+    avg_wait: float = Field(
+        0.0,
+        description="Average delay per vehicle (seconds)",
+    )
 
 
 class SimulationComparison(BaseModel):
-    """Adaptive controller vs a naive fixed-timer baseline over the same arrivals."""
+    """Adaptive controller vs a naive fixed-timer baseline."""
+
     adaptive_avg_wait: float = 0.0
     fixed_avg_wait: float = 0.0
     adaptive_served: int = 0
     fixed_served: int = 0
-    improvement_pct: float = Field(0.0, description="Reduction in avg wait vs fixed-timer (%)")
+
+    improvement_pct: float = Field(
+        0.0,
+        description="Reduction in avg wait vs fixed-timer (%)",
+    )
 
 
 class SignalSimulationResult(BaseModel):
@@ -181,45 +334,91 @@ class SignalSimulationResult(BaseModel):
     total_seconds: int
     steps: List[SimulationStep] = Field(default_factory=list)
     per_approach: List[ApproachSimSummary] = Field(default_factory=list)
-    comparison: SimulationComparison = Field(default_factory=SimulationComparison)
+    comparison: SimulationComparison = Field(
+        default_factory=SimulationComparison
+    )
     recommendation: SignalRecommendation
     rationale: str = ""
-    seeded_demo: bool = Field(False, description="True when no observations existed and a demo scenario was used")
+
+    seeded_demo: bool = Field(
+        False,
+        description=(
+            "True when no observations existed and a demo scenario was used"
+        ),
+    )
+
     is_simulation: bool = True
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
 
 class JunctionCreate(BaseModel):
-    junction_id: str = Field(..., json_schema_extra={"example": "J-MAIN-01"})
-    name: str = Field(..., json_schema_extra={"example": "Central Crossing"})
+    junction_id: str = Field(
+        ...,
+        json_schema_extra={"example": "J-MAIN-01"},
+    )
+
+    name: str = Field(
+        ...,
+        json_schema_extra={"example": "Central Crossing"},
+    )
+
     location: Optional[str] = "Main Avenue & 5th Street"
-    latitude: float = Field(28.6139, description="Geographic latitude coordinate")
-    longitude: float = Field(77.2090, description="Geographic longitude coordinate")
-    road_names: Optional[Dict[str, str]] = Field(default_factory=lambda: {
-        "NORTH": "North Boulevard",
-        "SOUTH": "South Expressway",
-        "EAST": "East Arterial Corridor",
-        "WEST": "West Linkway"
-    })
-    connected_junctions: Optional[List[str]] = Field(default_factory=list)
-    custom_counting_lines: Optional[Dict[str, CountingLineConfig]] = None
+
+    latitude: float = Field(
+        28.6139,
+        description="Geographic latitude coordinate",
+    )
+    longitude: float = Field(
+        77.2090,
+        description="Geographic longitude coordinate",
+    )
+    road_names: Optional[Dict[str, str]] = Field(
+        default_factory=lambda: {
+            "NORTH": "North Boulevard",
+            "SOUTH": "South Expressway",
+            "EAST": "East Arterial Corridor",
+            "WEST": "West Linkway",
+        }
+    )
+    connected_junctions: Optional[List[str]] = Field(
+        default_factory=list
+    )
+
+    custom_counting_lines: Optional[
+        Dict[str, CountingLineConfig]
+    ] = None
+
 
 class JunctionInfo(BaseModel):
     junction_id: str
     name: str
     location: Optional[str] = ""
+
     latitude: float = 28.6139
     longitude: float = 77.2090
-    road_names: Dict[str, str] = Field(default_factory=dict)
-    connected_junctions: List[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    road_names: Dict[str, str] = Field(
+        default_factory=dict
+    )
+    connected_junctions: List[str] = Field(
+        default_factory=list
+    )
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
     approaches_configured: List[str] = []
+
 
 class ProcessingJobStatus(BaseModel):
     job_id: str
     junction_id: str
     approach: ApproachEnum
-    status: str = "PENDING"  # PENDING, PROCESSING, COMPLETED, FAILED
-    progress: float = 0.0    # 0.0 to 100.0
+    status: str = "PENDING"
+    progress: float = 0.0
     message: Optional[str] = None
     result: Optional[ApproachTrafficState] = None
     video_filename: Optional[str] = None
