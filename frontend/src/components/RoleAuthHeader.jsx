@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { 
   Shield, 
-  Lock, 
-  Unlock, 
   User, 
   Building2, 
-  Cross, 
   Activity, 
   CheckCircle, 
-  AlertCircle, 
   LogOut, 
   KeyRound,
-  Sparkles
+  Sparkles,
+  ArrowLeftRight
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -28,30 +25,6 @@ export default function RoleAuthHeader({
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const handleRoleSelect = (roleKey) => {
-    if (roleKey === 'PUBLIC_USER') {
-      onRoleChange('PUBLIC_USER');
-      return;
-    }
-    // If switching to Hospital or Government, check if already authenticated
-    if (userSession && userSession.role === roleKey) {
-      onRoleChange(roleKey);
-      return;
-    }
-
-    // Open Auth Modal
-    setTargetRole(roleKey);
-    if (roleKey === 'HOSPITAL_DISPATCH') {
-      setUsername('hospital_admin');
-      setPassword('hospital123');
-    } else {
-      setUsername('traffic_command');
-      setPassword('police123');
-    }
-    setError(null);
-    setIsAuthModalOpen(true);
-  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -72,69 +45,55 @@ export default function RoleAuthHeader({
   return (
     <>
       <div className="role-auth-banner">
-        <div className="role-selector-group">
-          <span className="role-select-label">Select Active Portal Profile:</span>
+        {/* LEFT: ONLY THE CURRENT ACTIVE PORTAL */}
+        <div className="current-portal-box">
+          <span className="current-portal-lbl">Current Portal:</span>
+          {currentRole === 'PUBLIC_USER' && (
+            <div className="active-portal-badge public">
+              <User size={14} className="text-cyan" />
+              <span>Public Citizen Portal</span>
+              <span className="portal-pill-tag">Public</span>
+            </div>
+          )}
+
+          {currentRole === 'HOSPITAL_DISPATCH' && (
+            <div className="active-portal-badge hospital">
+              <Activity size={14} className="text-emerald" />
+              <span>Hospital Emergency Dispatch</span>
+              <span className="portal-pill-tag auth">Corridor Preemption</span>
+            </div>
+          )}
+
+          {currentRole === 'GOVERNMENT_OFFICIAL' && (
+            <div className="active-portal-badge government">
+              <Building2 size={14} className="text-blue" />
+              <span>Traffic Police &amp; Government Command</span>
+              <span className="portal-pill-tag auth">State Control</span>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: AUTH STATUS & GATEWAY SWITCHER */}
+        <div className="portal-right-controls">
+          {userSession && userSession.role !== 'PUBLIC_USER' ? (
+            <div className="authenticated-user-pill">
+              <Shield size={13} className="text-cyan" />
+              <span><strong>{userSession.organization_name}</strong> ({userSession.username})</span>
+              <button className="btn-logout" onClick={onLogout} title="Sign Out">
+                <LogOut size={12} />
+              </button>
+            </div>
+          ) : null}
 
           <button 
-            className={`role-tab-btn ${currentRole === 'PUBLIC_USER' ? 'active public' : ''}`}
-            onClick={() => handleRoleSelect('PUBLIC_USER')}
-          >
-            <User size={15} />
-            <span>Public Citizen</span>
-            <span className="role-badge open">Public</span>
-          </button>
-
-          <button 
-            className={`role-tab-btn ${currentRole === 'HOSPITAL_DISPATCH' ? 'active hospital' : ''}`}
-            onClick={() => handleRoleSelect('HOSPITAL_DISPATCH')}
-          >
-            <Activity size={15} className="text-emerald" />
-            <span>Hospital Emergency Dispatch</span>
-            {userSession && userSession.role === 'HOSPITAL_DISPATCH' ? (
-              <span className="role-badge auth"><CheckCircle size={10} /> Authenticated</span>
-            ) : (
-              <span className="role-badge locked"><Lock size={10} /> Protected</span>
-            )}
-          </button>
-
-          <button 
-            className={`role-tab-btn ${currentRole === 'GOVERNMENT_OFFICIAL' ? 'active gov' : ''}`}
-            onClick={() => handleRoleSelect('GOVERNMENT_OFFICIAL')}
-          >
-            <Building2 size={15} className="text-blue" />
-            <span>Traffic Police &amp; Government Command</span>
-            {userSession && userSession.role === 'GOVERNMENT_OFFICIAL' ? (
-              <span className="role-badge auth"><CheckCircle size={10} /> Authenticated</span>
-            ) : (
-              <span className="role-badge locked"><Lock size={10} /> Protected</span>
-            )}
-          </button>
-
-          <button 
-            className="role-tab-btn btn-gateway-switch"
+            type="button"
+            className="btn-gateway-switch"
             onClick={() => onRoleChange('GATEWAY')}
             title="Return to Main Portal Gateway"
           >
-            <Sparkles size={14} className="text-amber" />
+            <Sparkles size={13} className="text-amber" />
             <span>Portal Gateway</span>
           </button>
-        </div>
-
-        <div className="auth-status-chip">
-          {userSession && userSession.role !== 'PUBLIC_USER' ? (
-            <div className="authenticated-user-pill">
-              <Shield size={14} className="text-cyan" />
-              <span><strong>{userSession.organization_name}</strong> ({userSession.username})</span>
-              <button className="btn-logout" onClick={onLogout} title="Sign Out">
-                <LogOut size={13} />
-              </button>
-            </div>
-          ) : (
-            <div className="public-user-pill">
-              <User size={14} />
-              <span>Public Citizen Mode (Accident Reporting &amp; Live Map)</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -144,7 +103,7 @@ export default function RoleAuthHeader({
           <div className="auth-modal-content">
             <div className="modal-header">
               <div className="title-with-icon">
-                <KeyRound size={22} className="text-cyan" />
+                <KeyRound size={20} className="text-cyan" />
                 <div>
                   <h3>
                     {targetRole === 'HOSPITAL_DISPATCH' 
@@ -168,9 +127,10 @@ export default function RoleAuthHeader({
               </div>
 
               <div className="form-group">
-                <label>Username / Official ID</label>
+                <label className="form-label">Username / Official ID</label>
                 <input 
                   type="text" 
+                  className="form-input"
                   value={username} 
                   onChange={(e) => setUsername(e.target.value)} 
                   required 
@@ -178,9 +138,10 @@ export default function RoleAuthHeader({
               </div>
 
               <div className="form-group">
-                <label>Security Access Password</label>
+                <label className="form-label">Security Access Password</label>
                 <input 
                   type="password" 
+                  className="form-input font-mono"
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   required 

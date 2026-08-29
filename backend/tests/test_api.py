@@ -65,3 +65,31 @@ def test_signal_recommendation_simulation():
     simulated = client.post("/api/junctions/J-01/signal-simulation", json={"current_phase": "ALL_RED"})
     assert simulated.status_code == 200
     assert simulated.json()["junction_id"] == "J-01"
+
+def test_batch_video_status_endpoint():
+    res = client.get("/api/videos/batch-status?junction_id=J-01")
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
+
+def test_live_stream_registration():
+    payload = {
+        "junction_id": "J-01",
+        "approach": "NORTH",
+        "stream_type": "RTSP",
+        "stream_url": "rtsp://192.168.1.101:554/live",
+        "is_active": True,
+        "sampling_fps": 5.0
+    }
+    res = client.post("/api/videos/live-stream", json=payload)
+    assert res.status_code == 200
+    assert res.json()["status"] == "success"
+
+    streams = client.get("/api/videos/live-stream/J-01")
+    assert streams.status_code == 200
+    assert "NORTH" in streams.json()
+    assert streams.json()["NORTH"]["stream_type"] == "RTSP"
+
+    del_res = client.delete("/api/videos/live-stream/J-01/NORTH")
+    assert del_res.status_code == 200
+    assert del_res.json()["status"] == "success"
+

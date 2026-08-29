@@ -50,7 +50,7 @@ export const api = {
     return res.json();
   },
 
-  // Videos
+  // Videos & Multi-Approach Ingest
   async uploadVideo(junctionId, approach, file) {
     const formData = new FormData();
     formData.append('junction_id', junctionId);
@@ -65,9 +65,59 @@ export const api = {
     return res.json();
   },
 
+  async batchUploadVideos(junctionId, approachFiles) {
+    const formData = new FormData();
+    formData.append('junction_id', junctionId);
+    if (approachFiles.NORTH) formData.append('north_video', approachFiles.NORTH);
+    if (approachFiles.SOUTH) formData.append('south_video', approachFiles.SOUTH);
+    if (approachFiles.EAST) formData.append('east_video', approachFiles.EAST);
+    if (approachFiles.WEST) formData.append('west_video', approachFiles.WEST);
+
+    const res = await fetch(`${API_BASE}/videos/batch-upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Failed to start simultaneous batch upload');
+    return res.json();
+  },
+
+  async getBatchJobStatus(jobIds = [], junctionId = null) {
+    const params = new URLSearchParams();
+    if (jobIds.length > 0) params.set('job_ids', jobIds.join(','));
+    if (junctionId) params.set('junction_id', junctionId);
+    const res = await fetch(`${API_BASE}/videos/batch-status?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch batch job status');
+    return res.json();
+  },
+
   async getJobStatus(jobId) {
     const res = await fetch(`${API_BASE}/videos/status/${jobId}`);
     if (!res.ok) throw new Error('Failed to fetch job status');
+    return res.json();
+  },
+
+  // Live Video & Camera Streams
+  async registerLiveStream(data) {
+    const res = await fetch(`${API_BASE}/videos/live-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to register live stream feed');
+    return res.json();
+  },
+
+  async getJunctionLiveStreams(junctionId) {
+    const res = await fetch(`${API_BASE}/videos/live-stream/${junctionId}`);
+    if (!res.ok) return {};
+    return res.json();
+  },
+
+  async deleteLiveStream(junctionId, approach) {
+    const res = await fetch(`${API_BASE}/videos/live-stream/${junctionId}/${approach}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete live stream');
     return res.json();
   },
 

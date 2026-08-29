@@ -47,12 +47,23 @@ export default function GovernmentCommandPortal({
 }) {
   const [govActiveTab, setGovActiveTab] = useState('overview'); // 'overview', 'map', 'vision', 'simulation', 'incidents', 'weather', 'analytics'
   const [junctionStates, setJunctionStates] = useState({});
+  const [liveStreams, setLiveStreams] = useState({});
   const [activeAmbulances, setActiveAmbulances] = useState([]);
   const [activeIncidents, setActiveIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const selectedJunctionData = junctions.find((j) => j.junction_id === selectedJunction);
   const currentJunctionState = junctionStates[selectedJunction];
+
+  const fetchLiveStreams = async (jId) => {
+    if (!jId) return;
+    try {
+      const streams = await api.getJunctionLiveStreams(jId);
+      setLiveStreams(streams || {});
+    } catch (e) {
+      console.warn('Failed to load live streams', e);
+    }
+  };
 
   const fetchAllCommandData = async () => {
     try {
@@ -84,6 +95,12 @@ export default function GovernmentCommandPortal({
     const interval = setInterval(fetchAllCommandData, 6000);
     return () => clearInterval(interval);
   }, [junctions, analyticsRefresh]);
+
+  useEffect(() => {
+    if (selectedJunction) {
+      fetchLiveStreams(selectedJunction);
+    }
+  }, [selectedJunction, analyticsRefresh]);
 
   const getLevelBadgeClass = (level) => {
     switch (level) {
@@ -357,10 +374,10 @@ export default function GovernmentCommandPortal({
             </div>
 
             <div className="approaches-grid">
-              <ApproachFeedCard approachName="NORTH" state={currentJunctionState?.north} />
-              <ApproachFeedCard approachName="SOUTH" state={currentJunctionState?.south} />
-              <ApproachFeedCard approachName="EAST" state={currentJunctionState?.east} />
-              <ApproachFeedCard approachName="WEST" state={currentJunctionState?.west} />
+              <ApproachFeedCard approachName="NORTH" state={currentJunctionState?.north} liveStream={liveStreams?.NORTH} />
+              <ApproachFeedCard approachName="SOUTH" state={currentJunctionState?.south} liveStream={liveStreams?.SOUTH} />
+              <ApproachFeedCard approachName="EAST" state={currentJunctionState?.east} liveStream={liveStreams?.EAST} />
+              <ApproachFeedCard approachName="WEST" state={currentJunctionState?.west} liveStream={liveStreams?.WEST} />
             </div>
           </section>
         </div>

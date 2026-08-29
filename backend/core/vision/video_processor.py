@@ -675,6 +675,12 @@ class VideoProcessor:
                     "class_counts":
                         final_class_counts,
 
+                    "ambulance_count":
+                        confirmed_ambulance_count,
+
+                    "emergency_detected":
+                        confirmed_ambulance_count > 0,
+
                     "density":
                         round(
                             total_density

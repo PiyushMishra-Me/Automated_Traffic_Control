@@ -76,8 +76,8 @@ class Settings(BaseSettings):
     # Non-Maximum Suppression IoU threshold
     IOU_THRESHOLD: float = 0.45
 
-    # YOLO inference image size
-    INFERENCE_IMAGE_SIZE: int = 960
+    # YOLO inference image size (640 is optimal for high FPS without loss of accuracy)
+    INFERENCE_IMAGE_SIZE: int = 640
 
     # =====================================================
     # Normal Vehicle Classes

@@ -234,8 +234,8 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
             <form onSubmit={handleRegisterMission} className="incident-form">
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Emergency Department / Agency</label>
-                  <select value={agencyType} onChange={(e) => setAgencyType(e.target.value)}>
+                  <label className="form-label">Emergency Department / Agency</label>
+                  <select className="form-select" value={agencyType} onChange={(e) => setAgencyType(e.target.value)}>
                     <option value="HOSPITAL">🏥 Hospital Trauma Care</option>
                     <option value="FIRE_RESCUE">🚒 Fire &amp; Rescue Department</option>
                     <option value="POLICE_DISASTER">🚓 Disaster Relief / Police Escort</option>
@@ -243,38 +243,44 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
                 </div>
 
                 <div className="form-group">
-                  <label>Dispatching Station / Hospital Name</label>
+                  <label className="form-label">Dispatching Station / Hospital Name</label>
                   <input 
                     type="text" 
+                    className="form-input"
                     value={hospitalName} 
                     onChange={(e) => setHospitalName(e.target.value)} 
+                    placeholder="e.g. Apollo Hospital Trauma Hub"
                     required 
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Vehicle Call Sign / Registration</label>
+                  <label className="form-label">Vehicle Call Sign / Registration</label>
                   <input 
                     type="text" 
+                    className="form-input font-mono"
                     value={vehicleId} 
                     onChange={(e) => setVehicleId(e.target.value)} 
+                    placeholder="DL-01-AMB-911"
                     required 
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Driver / Officer Contact</label>
+                  <label className="form-label">Driver / Officer Contact</label>
                   <input 
                     type="text" 
+                    className="form-input font-mono"
                     value={driverContact} 
                     onChange={(e) => setDriverContact(e.target.value)} 
+                    placeholder="+91 98765 43210"
                     required 
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Emergency Criticality Urgency</label>
-                  <select value={criticality} onChange={(e) => setCriticality(e.target.value)}>
+                  <label className="form-label">Emergency Criticality Urgency</label>
+                  <select className="form-select" value={criticality} onChange={(e) => setCriticality(e.target.value)}>
                     <option value="CRITICAL_LIFE_THREATENING">🚨 Priority 4 — CRITICAL (Immediate Green Wave Override)</option>
                     <option value="HIGH">🔴 Priority 3 — HIGH (Expedited Green Corridor)</option>
                     <option value="MEDIUM">🟡 Priority 2 — MEDIUM (Priority Green Window Extension)</option>
@@ -283,8 +289,8 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
                 </div>
 
                 <div className="form-group">
-                  <label>Deployment Origin Junction</label>
-                  <select value={originJunction} onChange={(e) => setOriginJunction(e.target.value)}>
+                  <label className="form-label">Deployment Origin Junction</label>
+                  <select className="form-select" value={originJunction} onChange={(e) => setOriginJunction(e.target.value)}>
                     <option value="J-04">J-04 (Hospital / South Sector Hub)</option>
                     <option value="J-01">J-01 (Central Plaza Arterial)</option>
                     <option value="J-02">J-02 (East Arterial Flyover)</option>
@@ -293,9 +299,9 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Target Destination Junction</label>
-                  <select value={destinationJunction} onChange={(e) => setDestinationJunction(e.target.value)}>
+                <div className="form-group full-width">
+                  <label className="form-label">Target Destination Junction</label>
+                  <select className="form-select" value={destinationJunction} onChange={(e) => setDestinationJunction(e.target.value)}>
                     <option value="J-02">J-02 (East Specialized Trauma / Industrial Sector)</option>
                     <option value="J-01">J-01 (Central Metropolitan Center)</option>
                     <option value="J-03">J-03 (North University Hospital / Fire Zone)</option>
@@ -306,9 +312,10 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
               </div>
 
               <div className="form-group full-width" style={{ marginTop: '10px' }}>
-                <label>Emergency Incident / Victim Location</label>
+                <label className="form-label">Emergency Incident / Victim Location</label>
                 <input 
                   type="text" 
+                  className="form-input"
                   value={victimLocation} 
                   onChange={(e) => setVictimLocation(e.target.value)} 
                   placeholder="e.g. Ring Road Crossing opposite Metro Station"
@@ -317,12 +324,13 @@ export default function HospitalEmergencyPortal({ userSession, onMissionUpdated 
               </div>
 
               <div className="form-group full-width">
-                <label>Emergency Clinical Condition / Hazard Brief</label>
+                <label className="form-label">Emergency Clinical Condition / Hazard Brief</label>
                 <textarea 
                   rows="2" 
+                  className="form-textarea"
                   value={patientCondition} 
                   onChange={(e) => setPatientCondition(e.target.value)} 
-                  placeholder="Describe patient vitals, fire alarm tier, or disaster requirements..."
+                  placeholder="Describe patient vitals, cardiac/trauma tier, fire alarm level, or hazard scope..."
                   required 
                 />
               </div>

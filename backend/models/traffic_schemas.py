@@ -423,3 +423,19 @@ class ProcessingJobStatus(BaseModel):
     result: Optional[ApproachTrafficState] = None
     video_filename: Optional[str] = None
     annotated_filename: Optional[str] = None
+
+
+class BatchUploadResponse(BaseModel):
+    junction_id: str
+    jobs: List[ProcessingJobStatus] = Field(default_factory=list)
+    message: str = "Batch upload initiated"
+
+
+class LiveStreamConfigRequest(BaseModel):
+    junction_id: str
+    approach: ApproachEnum
+    stream_type: str = "RTSP"  # "RTSP" | "HLS" | "WEBRTC" | "DEVICE_WEBCAM" | "SIMULATION"
+    stream_url: Optional[str] = None
+    is_active: bool = True
+    sampling_fps: float = 5.0
+

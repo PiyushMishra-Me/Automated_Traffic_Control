@@ -24,12 +24,22 @@ class TrafficRepository:
             "timestamp": state.timestamp or datetime.now(timezone.utc),
             "vehicle_count": state.vehicle_count,
             "class_counts": state.class_counts,
+            "ambulance_count": state.ambulance_count,
+            "emergency_detected": state.emergency_detected,
             "density": state.density,
             "estimated_queue_length": state.estimated_queue_length,
             "flow": state.flow,
             "traffic_level": state.traffic_level.value if hasattr(state.traffic_level, "value") else str(state.traffic_level),
             "processed_frames": state.processed_frames,
             "total_unique_vehicles": state.total_unique_vehicles,
+            "incoming_count": state.incoming_count,
+            "outgoing_count": state.outgoing_count,
+            "stopped_incoming_count": state.stopped_incoming_count,
+            "stopped_outgoing_count": state.stopped_outgoing_count,
+            "parked_count": state.parked_count,
+            "unknown_direction_count": state.unknown_direction_count,
+            "incoming_flow": state.incoming_flow,
+            "outgoing_flow": state.outgoing_flow,
             "annotated_video_url": state.annotated_video_url
         }
 

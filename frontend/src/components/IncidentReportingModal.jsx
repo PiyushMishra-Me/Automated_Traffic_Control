@@ -265,8 +265,9 @@ export default function IncidentReportingModal({
           <form onSubmit={handleSubmit} className="incident-form">
             <div className="form-grid">
               <div className="form-group">
-                <label>Target Junction</label>
+                <label className="form-label">Target Junction</label>
                 <select 
+                  className="form-select"
                   value={junctionId} 
                   onChange={(e) => {
                     setJunctionId(e.target.value);
@@ -285,9 +286,10 @@ export default function IncidentReportingModal({
               </div>
 
               <div className="form-group">
-                <label>Affected Approach &amp; Roadway</label>
+                <label className="form-label">Affected Approach &amp; Roadway</label>
                 <div className="approach-road-flex">
                   <select 
+                    className="form-select"
                     value={approach} 
                     onChange={(e) => {
                       setApproach(e.target.value);
@@ -304,6 +306,7 @@ export default function IncidentReportingModal({
                   </select>
                   <input 
                     type="text" 
+                    className="form-input"
                     placeholder="Road Name"
                     value={roadName} 
                     onChange={(e) => setRoadName(e.target.value)} 
@@ -312,8 +315,8 @@ export default function IncidentReportingModal({
               </div>
 
               <div className="form-group">
-                <label>Incident Type</label>
-                <select value={incidentType} onChange={(e) => setIncidentType(e.target.value)}>
+                <label className="form-label">Incident Type</label>
+                <select className="form-select" value={incidentType} onChange={(e) => setIncidentType(e.target.value)}>
                   <option value="ACCIDENT">🚗 Collision / Vehicle Crash</option>
                   <option value="VEHICLE_BREAKDOWN">🚛 Heavy Vehicle Breakdown / Stall</option>
                   <option value="WATERLOGGING">🌊 Waterlogging / Road Flooding</option>
@@ -323,8 +326,8 @@ export default function IncidentReportingModal({
               </div>
 
               <div className="form-group">
-                <label>Severity Level</label>
-                <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+                <label className="form-label">Severity Level</label>
+                <select className="form-select" value={severity} onChange={(e) => setSeverity(e.target.value)}>
                   <option value="CRITICAL_ROAD_BLOCKED">🔴 CRITICAL — Entire Road Blocked</option>
                   <option value="SEVERE">🟠 SEVERE — Multiple Lanes Obstructed</option>
                   <option value="MODERATE">🟡 MODERATE — Partial Shoulder Blockage</option>
@@ -337,11 +340,11 @@ export default function IncidentReportingModal({
             <div className="camera-capture-section">
               <div className="camera-section-header">
                 <div className="camera-title">
-                  <Camera size={18} className="text-cyan" />
-                  <strong>Mandatory On-The-Spot Live Camera Evidence</strong>
+                  <Camera size={16} className="text-cyan" />
+                  <span>Mandatory On-The-Spot Live Camera Evidence</span>
                 </div>
                 <div className="camera-lock-pill">
-                  <Lock size={12} /> Live Capture Only (Gallery / File Memory Disabled)
+                  <Lock size={11} /> Live Capture Only (Gallery Disabled)
                 </div>
               </div>
 
@@ -352,7 +355,7 @@ export default function IncidentReportingModal({
                     <div className="snapped-overlay">
                       <span className="verified-badge"><ShieldCheck size={14} /> LIVE PHOTO VERIFIED</span>
                       <button type="button" className="retake-btn" onClick={retakePhoto}>
-                        <RotateCcw size={14} /> Retake
+                        <RotateCcw size={13} /> Retake Photo
                       </button>
                     </div>
                   </div>
@@ -367,9 +370,9 @@ export default function IncidentReportingModal({
                       <div className="viewfinder-crosshair"></div>
                     </div>
                     <div className="viewfinder-bottom-bar">
-                      <span className="live-tag">● LIVE VIEWFINDER</span>
+                      <span className="live-tag">● LIVE ON-SCENE CAMERA</span>
                       <button type="button" className="snap-btn" onClick={takeLiveSnapshot}>
-                        <Camera size={18} /> Snap Evidence Photo
+                        <Camera size={15} /> Snap Evidence Photo
                       </button>
                     </div>
                   </div>
@@ -379,9 +382,10 @@ export default function IncidentReportingModal({
             </div>
 
             <div className="form-group full-width" style={{ marginTop: '14px' }}>
-              <label>Physical Obstruction &amp; Hazard Details</label>
+              <label className="form-label">Physical Obstruction &amp; Hazard Details</label>
               <textarea 
                 rows="2" 
+                className="form-textarea"
                 placeholder="Describe vehicle types, lane obstruction, and first responder status..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
