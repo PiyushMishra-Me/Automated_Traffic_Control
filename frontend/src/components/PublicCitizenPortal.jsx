@@ -34,13 +34,34 @@ export default function PublicCitizenPortal({
   onOpenReportModal,
   onWeatherUpdated
 }) {
-  // Navigation State
+  // City & Navigation State
+  const [selectedCity, setSelectedCity] = useState('DELHI');
   const [navOrigin, setNavOrigin] = useState('J-04');
   const [navDestination, setNavDestination] = useState('J-02');
   const [vehicleType, setVehicleType] = useState('CAR');
   const [navLoading, setNavLoading] = useState(false);
   const [navResult, setNavResult] = useState(null);
   const [navError, setNavError] = useState(null);
+
+  // Filter junctions by selected city
+  const cityJunctions = junctions.filter(j => (j.city || 'DELHI').toUpperCase() === selectedCity.toUpperCase());
+
+  // Handle City Change
+  const handleCityChange = (cityKey) => {
+    setSelectedCity(cityKey);
+    const filtered = junctions.filter(j => (j.city || 'DELHI').toUpperCase() === cityKey.toUpperCase());
+    if (filtered.length >= 2) {
+      setNavOrigin(filtered[0].junction_id);
+      setNavDestination(filtered[1].junction_id);
+      if (onSelectJunction) onSelectJunction(filtered[0].junction_id);
+    } else if (filtered.length === 1) {
+      setNavOrigin(filtered[0].junction_id);
+      setNavDestination(filtered[0].junction_id);
+      if (onSelectJunction) onSelectJunction(filtered[0].junction_id);
+    }
+    setNavResult(null);
+    setNavError(null);
+  };
 
   const activeIncidents = incidents.filter(i => i.status === 'ACTIVE');
 
@@ -76,10 +97,10 @@ export default function PublicCitizenPortal({
           <div className="public-tag">
             <Sparkles size={14} className="text-cyan" /> Public Commuter &amp; Road Safety Hub
           </div>
-          <h2>Smart Commuter Routing &amp; Hazard Reporting</h2>
+          <h2>Smart Commuter Routing &amp; Real-World Road Navigation</h2>
           <p>
-            Find the <strong>fastest traffic-optimized path</strong> across the city, avoid congested choke points, 
-            and report road accidents on the spot with verified camera snapshots.
+            Find the <strong>real-world shortest &amp; traffic-optimized route</strong> across metropolitan cities, 
+            avoid active accident choke points, and report road hazards on the spot.
           </p>
         </div>
 
@@ -100,35 +121,73 @@ export default function PublicCitizenPortal({
           <div className="title-with-icon">
             <Route size={22} className="text-cyan" />
             <div>
-              <h3>Dynamic Shortest &amp; Optimal Route Navigator</h3>
+              <h3>Real-World Dynamic Shortest Path Navigator</h3>
               <p className="card-subtitle">
-                Real-time traffic-weighted pathfinder • Incident avoidance • Emergency vehicle priority preemption
+                Live vision AI traffic-weighted pathfinder • Real road distance • Active incident avoidance
               </p>
             </div>
           </div>
         </div>
 
+        {/* City Selector Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#475569' }}>Select Metropolitan City:</span>
+          {[
+            { key: 'DELHI', label: '🏛️ New Delhi' },
+            { key: 'MUMBAI', label: '🌊 Mumbai' },
+            { key: 'HYDERABAD', label: '💎 Hyderabad' },
+            { key: 'BENGALURU', label: '🌳 Bengaluru' }
+          ].map(c => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => handleCityChange(c.key)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: selectedCity === c.key ? 800 : 600,
+                background: selectedCity === c.key ? '#0284c7' : '#f8fafc',
+                color: selectedCity === c.key ? '#ffffff' : '#334155',
+                border: `1px solid ${selectedCity === c.key ? '#0284c7' : '#cbd5e1'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={handleComputeRoute} className="planner-form">
           <div className="planner-grid">
             <div className="planner-field">
-              <label><MapPin size={14} className="text-emerald" /> Your Current Origin / Location</label>
+              <label><MapPin size={14} className="text-emerald" /> Origin / Starting Location</label>
               <select value={navOrigin} onChange={(e) => setNavOrigin(e.target.value)}>
-                <option value="J-04">J-04: Metro Transit Interchange (South Sector)</option>
-                <option value="J-01">J-01: Central Plaza Arterial (Downtown)</option>
-                <option value="J-02">J-02: Tech City Interchange (East Hub)</option>
-                <option value="J-03">J-03: North Ring Crossing (University Zone)</option>
-                <option value="J-05">J-05: Commercial Complex (West Hub)</option>
+                {cityJunctions.length > 0 ? (
+                  cityJunctions.map(j => (
+                    <option key={j.junction_id} value={j.junction_id}>
+                      {j.junction_id}: {j.name} ({j.location || 'Arterial'})
+                    </option>
+                  ))
+                ) : (
+                  <option value="J-01">J-01: Central Plaza Interchange</option>
+                )}
               </select>
             </div>
 
             <div className="planner-field">
               <label><Compass size={14} className="text-cyan" /> Target Destination</label>
               <select value={navDestination} onChange={(e) => setNavDestination(e.target.value)}>
-                <option value="J-02">J-02: Tech City Interchange (East Hub)</option>
-                <option value="J-01">J-01: Central Plaza Arterial (Downtown)</option>
-                <option value="J-03">J-03: North Ring Crossing (University Zone)</option>
-                <option value="J-04">J-04: Metro Transit Interchange (South Sector)</option>
-                <option value="J-05">J-05: Commercial Complex (West Hub)</option>
+                {cityJunctions.length > 0 ? (
+                  cityJunctions.map(j => (
+                    <option key={j.junction_id} value={j.junction_id}>
+                      {j.junction_id}: {j.name} ({j.location || 'Arterial'})
+                    </option>
+                  ))
+                ) : (
+                  <option value="J-02">J-02: Tech City Interchange</option>
+                )}
               </select>
             </div>
 
@@ -144,7 +203,7 @@ export default function PublicCitizenPortal({
 
             <div className="planner-action-col">
               <button type="submit" className="btn-find-route" disabled={navLoading}>
-                {navLoading ? 'Computing Live Costs...' : '⚡ Find Optimal Route'}
+                {navLoading ? 'Computing Live Path...' : '⚡ Find Shortest Path'}
               </button>
             </div>
           </div>
@@ -290,6 +349,10 @@ export default function PublicCitizenPortal({
           weatherData={weatherData}
           navigationRoute={navResult ? navResult.optimal_route_junctions : null}
           onOpenReportModal={onOpenReportModal}
+          selectedCity={selectedCity}
+          onSelectCity={handleCityChange}
+          onSetNavOrigin={(jId) => setNavOrigin(jId)}
+          onSetNavDestination={(jId) => setNavDestination(jId)}
         />
       </div>
 

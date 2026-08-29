@@ -10,8 +10,8 @@ def test_root_endpoint():
     res = client.get("/")
     assert res.status_code == 200
     data = res.json()
-    assert data["phase"] == 3
     assert data["status"] == "online"
+    assert "system" in data
 
 def test_list_junctions():
     res = client.get("/api/junctions")

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Query
 from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState, SignalRecommendation, SignalSimulationRequest, SignalSimulationResult
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
@@ -9,8 +10,8 @@ from backend.core.control.signal_simulation import TrafficSimulator
 router = APIRouter(prefix="/api/junctions", tags=["Junctions"])
 
 @router.get("", response_model=list[dict])
-def list_junctions():
-    return junction_repo.list_junctions()
+def list_junctions(city: Optional[str] = Query(None, description="Filter junctions by city")):
+    return junction_repo.list_junctions(city=city)
 
 @router.post("", response_model=dict)
 def create_junction(payload: JunctionCreate):

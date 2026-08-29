@@ -12,8 +12,8 @@ from backend.api.routes_navigation import router as navigation_router
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Phase 3: Traffic monitoring, analytics, live map, upstream diversion, weather-adaptive control, ambulance green corridors, role-based profiles, and smart navigation",
-    version="3.3.0"
+    description="Automated traffic monitoring, dual-model vision AI, real-time camera inference, geospatial map, dynamic routing, weather-adaptive control, and green wave emergency corridors",
+    version="1.0.0"
 )
 
 # Enable CORS for local React development
@@ -39,7 +39,6 @@ app.include_router(navigation_router)
 def root():
     return {
         "system": settings.APP_NAME,
-        "phase": 3,
         "status": "online",
         "endpoints": {
             "docs": "/docs",
@@ -47,7 +46,8 @@ def root():
             "video_upload": "/api/videos/upload",
             "analytics": "/api/analytics",
             "incidents": "/api/incidents",
-            "weather": "/api/weather"
+            "weather": "/api/weather",
+            "navigation": "/api/navigation/route"
         }
     }
 

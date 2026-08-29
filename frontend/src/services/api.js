@@ -2,8 +2,9 @@ const API_BASE = '/api';
 
 export const api = {
   // Junctions
-  async listJunctions() {
-    const res = await fetch(`${API_BASE}/junctions`);
+  async listJunctions(city = null) {
+    const url = city ? `${API_BASE}/junctions?city=${encodeURIComponent(city)}` : `${API_BASE}/junctions`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch junctions');
     return res.json();
   },

@@ -9,11 +9,50 @@ import {
   ZoomOut, 
   RotateCcw, 
   ShieldAlert, 
-  Compass,
-  ArrowRight,
-  Activity,
-  Radio
+  Compass, 
+  ArrowRight, 
+  Activity, 
+  Radio, 
+  Building2, 
+  Sparkles, 
+  Navigation2,
+  CheckCircle2,
+  Maximize2
 } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Metropolitan City Center Presets
+export const CITY_PRESETS = {
+  DELHI: {
+    name: 'New Delhi / NCR',
+    center: [28.6250, 77.2100],
+    zoom: 12,
+    icon: '🏛️',
+    description: 'Connaught Place, ITO, AIIMS & Airport Corridors'
+  },
+  MUMBAI: {
+    name: 'Mumbai Metropolitan',
+    center: [19.0400, 72.8700],
+    zoom: 12,
+    icon: '🌊',
+    description: 'BKC, Dadar, Marine Drive, Andheri & Vashi Link'
+  },
+  HYDERABAD: {
+    name: 'Hyderabad Cyber Hub',
+    center: [17.4200, 78.4100],
+    zoom: 12,
+    icon: '💎',
+    description: 'Hitec City, Gachibowli, Jubilee Hills & Charminar'
+  },
+  BENGALURU: {
+    name: 'Bengaluru Tech Grid',
+    center: [12.9350, 77.6300],
+    zoom: 12,
+    icon: '🌳',
+    description: 'Silk Board, E-City, Koramangala, Indiranagar & MG Road'
+  }
+};
 
 export default function LiveJunctionMap({ 
   junctions = [], 
@@ -23,13 +62,14 @@ export default function LiveJunctionMap({
   activeAmbulances = [],
   weatherData = null,
   navigationRoute = null,
-  onOpenReportModal
+  onOpenReportModal,
+  selectedCity = 'DELHI',
+  onSelectCity,
+  onSetNavOrigin,
+  onSetNavDestination
 }) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [hoveredJunction, setHoveredJunction] = useState(null);
+  const [mapMode, setMapMode] = useState('LEAFLET'); // 'LEAFLET' | 'TACTICAL'
+  const [currentCity, setCurrentCity] = useState(selectedCity || 'DELHI');
   const [activeLayers, setActiveLayers] = useState({
     traffic: true,
     corridors: true,
@@ -38,425 +78,419 @@ export default function LiveJunctionMap({
     weather: true
   });
 
-  const svgRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const leafletMapRef = useRef(null);
+  const markersGroupRef = useRef(null);
+  const corridorsGroupRef = useRef(null);
+  const routeGroupRef = useRef(null);
 
-  // Map geographic coords (lat: ~28.60-28.65, lng: ~77.19-77.24) to SVG viewBox (800x600)
-  const minLat = 28.6000, maxLat = 28.6550;
-  const minLng = 77.1900, maxLng = 77.2400;
-
-  const projectCoords = (lat = 28.6139, lng = 77.2090) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * 650 + 75;
-    const y = (1 - (lat - minLat) / (maxLat - minLat)) * 480 + 60;
-    return { x, y };
-  };
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  const resetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-
-  // Find active incidents for all junctions
-  const activeIncidentsByJunction = {};
-  incidents.forEach(inc => {
-    if (inc.status === 'ACTIVE') {
-      if (!activeIncidentsByJunction[inc.junction_id]) {
-        activeIncidentsByJunction[inc.junction_id] = [];
-      }
-      activeIncidentsByJunction[inc.junction_id].push(inc);
+  // Sync city prop if changed from parent
+  useEffect(() => {
+    if (selectedCity && selectedCity !== currentCity) {
+      setCurrentCity(selectedCity);
     }
-  });
+  }, [selectedCity]);
 
-  return (
-    <div className="live-map-card">
-      <div className="card-header">
-        <div className="title-with-icon">
-          <div className="pulse-icon-wrapper">
-            <Radio className="icon-pulse text-cyan" size={20} />
-            <span className="live-indicator-dot"></span>
+  // Initialize Leaflet Map
+  useEffect(() => {
+    if (mapMode !== 'LEAFLET' || !mapContainerRef.current) return;
+
+    if (!leafletMapRef.current) {
+      const cityCfg = CITY_PRESETS[currentCity] || CITY_PRESETS.DELHI;
+      const map = L.map(mapContainerRef.current, {
+        center: cityCfg.center,
+        zoom: cityCfg.zoom,
+        zoomControl: false,
+        attributionControl: false
+      });
+
+      // Add CartoDB Voyager tile layer (clean, high-contrast, modern street map)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+      }).addTo(map);
+
+      // Create Layer Groups
+      corridorsGroupRef.current = L.layerGroup().addTo(map);
+      routeGroupRef.current = L.layerGroup().addTo(map);
+      markersGroupRef.current = L.layerGroup().addTo(map);
+
+      leafletMapRef.current = map;
+    }
+
+    return () => {
+      // Map cleanup handled gracefully
+    };
+  }, [mapMode]);
+
+  // Handle City Change: Pan/FlyTo City Center
+  const handleCityChange = (cityKey) => {
+    setCurrentCity(cityKey);
+    if (onSelectCity) onSelectCity(cityKey);
+
+    const cityCfg = CITY_PRESETS[cityKey];
+    if (leafletMapRef.current && cityCfg) {
+      leafletMapRef.current.flyTo(cityCfg.center, cityCfg.zoom, {
+        duration: 1.5,
+        easeLinearity: 0.25
+      });
+    }
+
+    // If selected junction not in this city, select first junction of this city
+    const cityJunctions = junctions.filter(j => (j.city || 'DELHI').toUpperCase() === cityKey.toUpperCase());
+    if (cityJunctions.length > 0 && !cityJunctions.some(j => j.junction_id === selectedJunction)) {
+      if (onSelectJunction) onSelectJunction(cityJunctions[0].junction_id);
+    }
+  };
+
+  // Render Markers, Corridors & Navigation Path on Leaflet Map
+  useEffect(() => {
+    if (mapMode !== 'LEAFLET' || !leafletMapRef.current) return;
+
+    const map = leafletMapRef.current;
+    if (markersGroupRef.current) markersGroupRef.current.clearLayers();
+    if (corridorsGroupRef.current) corridorsGroupRef.current.clearLayers();
+    if (routeGroupRef.current) routeGroupRef.current.clearLayers();
+
+    const jMap = new Map();
+    junctions.forEach(j => jMap.set(j.junction_id, j));
+
+    // 1. Draw Corridors between connected junctions
+    if (activeLayers.corridors && corridorsGroupRef.current) {
+      const drawnPairs = new Set();
+      junctions.forEach(j => {
+        const lat1 = j.latitude || 28.6139;
+        const lng1 = j.longitude || 77.2090;
+
+        (j.connected_junctions || []).forEach(neighborId => {
+          const neighbor = jMap.get(neighborId);
+          if (neighbor) {
+            const pairKey = [j.junction_id, neighborId].sort().join('-');
+            if (!drawnPairs.has(pairKey)) {
+              drawnPairs.add(pairKey);
+              const lat2 = neighbor.latitude || 28.6139;
+              const lng2 = neighbor.longitude || 77.2090;
+
+              const corridorLine = L.polyline([[lat1, lng1], [lat2, lng2]], {
+                color: '#64748b',
+                weight: 3.5,
+                opacity: 0.6,
+                dashArray: '6, 6'
+              });
+              corridorLine.bindTooltip(`${j.name.split(' ')[0]} ↔ ${neighbor.name.split(' ')[0]}`, { sticky: true });
+              corridorsGroupRef.current.addLayer(corridorLine);
+            }
+          }
+        });
+      });
+    }
+
+    // 2. Draw Active Public Navigation Shortest Path Route
+    if (navigationRoute && navigationRoute.steps && routeGroupRef.current) {
+      const routeCoords = [];
+      navigationRoute.steps.forEach(step => {
+        const jNode = jMap.get(step.junction_id);
+        if (jNode && jNode.latitude && jNode.longitude) {
+          routeCoords.push([jNode.latitude, jNode.longitude]);
+        }
+      });
+
+      if (routeCoords.length >= 2) {
+        // Glowing background line
+        const glowLine = L.polyline(routeCoords, {
+          color: '#06b6d4',
+          weight: 9,
+          opacity: 0.4
+        });
+        routeGroupRef.current.addLayer(glowLine);
+
+        // Active solid route line
+        const activeRouteLine = L.polyline(routeCoords, {
+          color: '#0284c7',
+          weight: 5,
+          opacity: 0.95
+        });
+        activeRouteLine.bindPopup(`
+          <div style="font-family: system-ui; padding: 4px;">
+            <div style="font-weight: 700; color: #0284c7; margin-bottom: 4px;">⚡ Optimal Navigation Path</div>
+            <div>Estimated Transit: <b>${Math.round((navigationRoute.total_travel_time_seconds || 180) / 60)} mins</b></div>
+            <div>Distance: <b>${navigationRoute.total_distance_km || 4.2} km</b></div>
+            <div style="color: #10b981; font-size: 11px; margin-top: 4px;">✓ Real-time traffic & weather optimized</div>
           </div>
-          <div>
-            <h3>Live Urban Junction & Corridor Map</h3>
-            <p className="card-subtitle">Real-time geospatial traffic telemetry, active incidents, & upstream diversion routing</p>
+        `);
+        routeGroupRef.current.addLayer(activeRouteLine);
+
+        // Auto-fit map to route
+        map.fitBounds(activeRouteLine.getBounds(), { padding: [40, 40], maxZoom: 15 });
+      }
+    }
+
+    // 3. Draw Junction Markers
+    if (markersGroupRef.current) {
+      junctions.forEach(j => {
+        const lat = j.latitude || 28.6139;
+        const lng = j.longitude || 77.2090;
+        const isSelected = j.junction_id === selectedJunction;
+        const hasIncident = incidents.some(inc => inc.junction_id === j.junction_id && inc.status === 'ACTIVE');
+        const hasAmbulance = activeAmbulances.some(amb => 
+          amb.current_junction_id === j.junction_id || 
+          (amb.route_corridor && amb.route_corridor.some(n => n.junction_id === j.junction_id))
+        );
+
+        // Custom HTML Marker Pin
+        const markerHtml = `
+          <div class="custom-leaflet-marker ${isSelected ? 'marker-selected' : ''}" style="
+            position: relative;
+            width: ${isSelected ? '44px' : '36px'};
+            height: ${isSelected ? '44px' : '36px'};
+            border-radius: 50%;
+            background: ${hasIncident ? '#ef4444' : hasAmbulance ? '#f59e0b' : isSelected ? '#0284c7' : '#ffffff'};
+            border: 3px solid ${isSelected ? '#ffffff' : hasIncident ? '#f87171' : hasAmbulance ? '#fde047' : '#0284c7'};
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: ${isSelected || hasIncident || hasAmbulance ? '#ffffff' : '#0284c7'};
+            font-weight: 800;
+            font-size: ${isSelected ? '13px' : '11px'};
+            cursor: pointer;
+            transition: all 0.2s ease;
+          ">
+            ${hasIncident ? '⚠️' : hasAmbulance ? '🚑' : j.junction_id.replace('J-', '').replace('DEL-', '').replace('BOM-', '').replace('HYD-', '').replace('BLR-', '')}
+            ${isSelected ? '<div style="position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; background: #10b981; border: 2px solid #ffffff; border-radius: 50%;"></div>' : ''}
           </div>
-        </div>
+        `;
 
-        <div className="map-toolbar">
-          <div className="layer-toggles">
-            <button 
-              className={`layer-btn ${activeLayers.traffic ? 'active' : ''}`}
-              onClick={() => setActiveLayers(l => ({ ...l, traffic: !l.traffic }))}
-              title="Toggle Traffic Density"
-            >
-              <Activity size={14} /> Traffic
-            </button>
-            <button 
-              className={`layer-btn ${activeLayers.diversions ? 'active' : ''}`}
-              onClick={() => setActiveLayers(l => ({ ...l, diversions: !l.diversions }))}
-              title="Toggle Detour Diversions"
-            >
-              <Navigation size={14} /> Diversions
-            </button>
-            <button 
-              className={`layer-btn ${activeLayers.weather ? 'active' : ''}`}
-              onClick={() => setActiveLayers(l => ({ ...l, weather: !l.weather }))}
-              title="Toggle Weather Radar"
-            >
-              <CloudRain size={14} /> Weather
-            </button>
-          </div>
+        const icon = L.divIcon({
+          html: markerHtml,
+          className: 'leaflet-custom-div-icon',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
 
-          <div className="zoom-controls">
-            <button onClick={() => setZoom(z => Math.min(z + 0.25, 2.5))} title="Zoom In"><ZoomIn size={16} /></button>
-            <button onClick={() => setZoom(z => Math.max(z - 0.25, 0.75))} title="Zoom Out"><ZoomOut size={16} /></button>
-            <button onClick={resetView} title="Reset View"><RotateCcw size={16} /></button>
-          </div>
+        const marker = L.marker([lat, lng], { icon });
 
-          {onOpenReportModal && (
-            <button className="report-incident-btn" onClick={onOpenReportModal}>
-              <AlertTriangle size={15} /> Report Hazard / Crash
-            </button>
-          )}
-        </div>
-      </div>
+        // Popup with details and quick action buttons
+        const popupContent = `
+          <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; padding: 4px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-weight: 800; font-size: 14px; color: #0f172a;">${j.name}</span>
+              <span style="background: #e0f2fe; color: #0284c7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${j.junction_id}</span>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">📍 ${j.location || 'Urban Arterial'}</div>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; font-size: 11px; margin-bottom: 10px;">
+              <div style="color: #475569;"><b>GPS:</b> ${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E</div>
+              <div style="color: #475569;"><b>City:</b> ${j.city || 'DELHI'}</div>
+            </div>
 
-      <div 
-        className="map-canvas-container"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <svg 
-          ref={svgRef}
-          viewBox="0 0 800 600" 
-          className="map-svg"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'center center',
-            cursor: isDragging ? 'grabbing' : 'grab'
-          }}
-        >
-          <defs>
-            {/* Grid Pattern */}
-            <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
-            </pattern>
-
-            {/* Glowing Gradient for Normal Flow */}
-            <linearGradient id="flowNormal" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
-            </linearGradient>
-
-            {/* Glowing Gradient for Diversion Flow */}
-            <linearGradient id="flowDiversion" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="1" />
-              <stop offset="100%" stopColor="#ec4899" stopOpacity="1" />
-            </linearGradient>
-
-            {/* Accident Hazard Glow Filter */}
-            <filter id="hazardGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Map Base Grid */}
-          <rect width="100%" height="100%" fill="#0a0f1d" />
-          <rect width="100%" height="100%" fill="url(#mapGrid)" />
-
-          {/* City District Blocks & Features */}
-          <g className="map-city-zones" opacity="0.35">
-            <path d="M 120,90 Q 280,60 440,110 T 700,80 L 720,260 Q 560,280 380,240 Z" fill="#0f1f38" stroke="#1e293b" strokeWidth="1" />
-            <path d="M 80,310 Q 260,340 400,310 T 720,380 L 680,540 Q 420,510 140,550 Z" fill="#0f223d" stroke="#1e293b" strokeWidth="1" />
-            {/* Waterfront Canal line */}
-            <path d="M 50,560 Q 300,500 550,540 T 780,520" fill="none" stroke="#0369a1" strokeWidth="6" opacity="0.3" />
-          </g>
-
-          {/* Road Network Corridors */}
-          {activeLayers.corridors && (
-            <g className="map-roads">
-              {/* Interconnecting Road Arterials */}
-              {junctions.map((j) => {
-                const p1 = projectCoords(j.latitude, j.longitude);
-                return (j.connected_junctions || []).map((targetId) => {
-                  const targetJ = junctions.find(tj => tj.junction_id === targetId);
-                  if (!targetJ) return null;
-                  const p2 = projectCoords(targetJ.latitude, targetJ.longitude);
-                  const hasIncident = (activeIncidentsByJunction[j.junction_id] || []).length > 0;
-
-                  return (
-                    <g key={`road-${j.junction_id}-${targetId}`}>
-                      {/* Background Road Base */}
-                      <line 
-                        x1={p1.x} y1={p1.y} 
-                        x2={p2.x} y2={p2.y} 
-                        stroke="#1e293b" 
-                        strokeWidth="10" 
-                        strokeLinecap="round" 
-                      />
-                      {/* Road Center Line */}
-                      <line 
-                        x1={p1.x} y1={p1.y} 
-                        x2={p2.x} y2={p2.y} 
-                        stroke="#334155" 
-                        strokeWidth="6" 
-                        strokeDasharray="4,6" 
-                      />
-                      {/* Active Traffic Flow Stream */}
-                      {activeLayers.traffic && !hasIncident && (
-                        <line 
-                          x1={p1.x} y1={p1.y} 
-                          x2={p2.x} y2={p2.y} 
-                          stroke="url(#flowNormal)" 
-                          strokeWidth="2.5" 
-                          strokeDasharray="8,16" 
-                          className="animated-flow-line" 
-                        />
-                      )}
-                    </g>
-                  );
-                });
-              })}
-            </g>
-          )}
-
-          {/* Upstream Traffic Diversion Detour Polylines */}
-          {activeLayers.diversions && incidents.filter(i => i.status === 'ACTIVE' && i.diversion_plan).map(inc => {
-            const jSrc = junctions.find(j => j.junction_id === inc.junction_id);
-            const jBypass = junctions.find(j => j.junction_id === inc.diversion_plan.bypass_junction_id);
-            if (!jSrc || !jBypass) return null;
-
-            const pSrc = projectCoords(jSrc.latitude, jSrc.longitude);
-            const pBypass = projectCoords(jBypass.latitude, jBypass.longitude);
-
-            // Arc detour path
-            const dx = pBypass.x - pSrc.x;
-            const dy = pBypass.y - pSrc.y;
-            const cx = (pSrc.x + pBypass.x) / 2 - dy * 0.35;
-            const cy = (pSrc.y + pBypass.y) / 2 + dx * 0.35;
-            const d = `M ${pSrc.x},${pSrc.y} Q ${cx},${cy} ${pBypass.x},${pBypass.y}`;
-
-            return (
-              <g key={`detour-${inc.incident_id}`} className="diversion-corridor-group">
-                <path 
-                  d={d} 
-                  fill="none" 
-                  stroke="rgba(245, 158, 11, 0.3)" 
-                  strokeWidth="12" 
-                  strokeLinecap="round" 
-                />
-                <path 
-                  d={d} 
-                  fill="none" 
-                  stroke="url(#flowDiversion)" 
-                  strokeWidth="4" 
-                  strokeDasharray="10,12" 
-                  className="animated-diversion-line" 
-                />
-                {/* Detour Label */}
-                <text 
-                  x={cx} 
-                  y={cy - 12} 
-                  fill="#f59e0b" 
-                  fontSize="10" 
-                  fontWeight="bold" 
-                  textAnchor="middle" 
-                  className="detour-label-glow"
-                >
-                  DETOUR ➔ {inc.diversion_plan.recommended_reroute_corridor}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Active Emergency Ambulance Green Wave Corridors */}
-          {activeLayers.ambulances && activeAmbulances.filter(a => a.status !== 'MISSION_ACCOMPLISHED').map(amb => {
-            const originJ = junctions.find(j => j.junction_id === amb.origin_junction_id);
-            const destJ = junctions.find(j => j.junction_id === amb.destination_junction_id);
-            if (!originJ || !destJ) return null;
-
-            const p1 = projectCoords(originJ.latitude, originJ.longitude);
-            const p2 = projectCoords(destJ.latitude, destJ.longitude);
-            const midX = (p1.x + p2.x) / 2;
-            const midY = (p1.y + p2.y) / 2 - 15;
-
-            return (
-              <g key={`amb-corridor-${amb.mission_id}`}>
-                {/* Neon Green Glow Base */}
-                <line 
-                  x1={p1.x} y1={p1.y} 
-                  x2={p2.x} y2={p2.y} 
-                  stroke="rgba(16, 185, 129, 0.25)" 
-                  strokeWidth="14" 
-                  strokeLinecap="round" 
-                />
-                {/* Fast Animated Green Wave */}
-                <line 
-                  x1={p1.x} y1={p1.y} 
-                  x2={p2.x} y2={p2.y} 
-                  stroke="#10b981" 
-                  strokeWidth="3.5" 
-                  strokeDasharray="6,10" 
-                  className="animated-greenwave-line" 
-                />
-                {/* Ambulance Vehicle Marker */}
-                <g transform={`translate(${midX}, ${midY})`} className="ambulance-map-pin">
-                  <circle r="14" fill="#065f46" stroke="#34d399" strokeWidth="2" className="pulse-greenwave" />
-                  <text y="4" textAnchor="middle" fontSize="13">🚑</text>
-                  <text y="-18" textAnchor="middle" fill="#34d399" fontSize="9" fontWeight="800" className="font-mono">
-                    {amb.mission_id} ({amb.criticality === 'CRITICAL_LIFE_THREATENING' ? 'P4-CRITICAL' : amb.criticality})
-                  </text>
-                </g>
-              </g>
-            );
-          })}
-
-          {/* Active Public Commuter Navigation Route */}
-          {navigationRoute && navigationRoute.length > 1 && (
-            <g className="commuter-nav-route-group">
-              {navigationRoute.map((nodeId, idx) => {
-                if (idx === navigationRoute.length - 1) return null;
-                const nextId = navigationRoute[idx + 1];
-                const j1 = junctions.find(j => j.junction_id === nodeId);
-                const j2 = junctions.find(j => j.junction_id === nextId);
-                if (!j1 || !j2) return null;
-
-                const p1 = projectCoords(j1.latitude, j1.longitude);
-                const p2 = projectCoords(j2.latitude, j2.longitude);
-
-                return (
-                  <g key={`nav-segment-${nodeId}-${nextId}`}>
-                    {/* Glowing Electric Cyan Base */}
-                    <line 
-                      x1={p1.x} y1={p1.y} 
-                      x2={p2.x} y2={p2.y} 
-                      stroke="rgba(6, 182, 212, 0.35)" 
-                      strokeWidth="16" 
-                      strokeLinecap="round" 
-                    />
-                    {/* Pulsing Navigation Trail */}
-                    <line 
-                      x1={p1.x} y1={p1.y} 
-                      x2={p2.x} y2={p2.y} 
-                      stroke="#06b6d4" 
-                      strokeWidth="4" 
-                      strokeDasharray="8,6" 
-                      className="animated-navigation-line" 
-                    />
-                  </g>
-                );
-              })}
-            </g>
-          )}
-
-          {/* Junction Nodes / Pins */}
-          {junctions.map((j) => {
-            const { x, y } = projectCoords(j.latitude, j.longitude);
-            const isSelected = selectedJunction === j.junction_id;
-            const jIncidents = activeIncidentsByJunction[j.junction_id] || [];
-            const hasIncident = jIncidents.length > 0;
-            const isHovered = hoveredJunction === j.junction_id;
-
-            return (
-              <g 
-                key={j.junction_id} 
-                className="junction-marker-group"
-                transform={`translate(${x}, ${y})`}
-                onClick={() => onSelectJunction && onSelectJunction(j.junction_id)}
-                onMouseEnter={() => setHoveredJunction(j.junction_id)}
-                onMouseLeave={() => setHoveredJunction(null)}
-                style={{ cursor: 'pointer' }}
-              >
-                {/* Selection Rings */}
-                {isSelected && (
-                  <circle r="28" fill="none" stroke="#06b6d4" strokeWidth="2" opacity="0.6" className="pulsing-selection-ring" />
-                )}
-
-                {/* Incident Hazard Halo */}
-                {hasIncident && (
-                  <circle r="34" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" strokeWidth="2" className="hazard-pulse-ring" filter="url(#hazardGlow)" />
-                )}
-
-                {/* Base Node Circle */}
-                <circle 
-                  r={isSelected ? 18 : 15} 
-                  fill={hasIncident ? '#ef4444' : (isSelected ? '#0284c7' : '#1e293b')} 
-                  stroke={isSelected ? '#38bdf8' : (hasIncident ? '#fca5a5' : '#475569')} 
-                  strokeWidth={isSelected ? 3 : 2} 
-                />
-
-                {/* Node Center Icon / Text */}
-                {hasIncident ? (
-                  <text y="4" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold">⚠️</text>
-                ) : (
-                  <text y="4" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">
-                    {j.junction_id.replace('J-', '')}
-                  </text>
-                )}
-
-                {/* Junction Title Label */}
-                <text 
-                  y={isSelected ? 32 : 28} 
-                  textAnchor="middle" 
-                  fill={isSelected ? '#38bdf8' : '#cbd5e1'} 
-                  fontSize={isSelected ? "11" : "10"} 
-                  fontWeight={isSelected ? "bold" : "normal"}
-                  className="junction-node-label"
-                >
-                  {j.junction_id}
-                </text>
-
-                {/* Hover Info Tooltip in SVG */}
-                {(isHovered || isSelected) && (
-                  <g transform="translate(24, -40)" className="map-tooltip-group">
-                    <rect width="180" height="74" rx="8" fill="#0f172a" stroke="#334155" strokeWidth="1" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.5))" />
-                    <text x="10" y="18" fill="#f8fafc" fontSize="11" fontWeight="bold">{j.name || j.junction_id}</text>
-                    <text x="10" y="34" fill="#94a3b8" fontSize="9">{j.location || 'Urban Arterial'}</text>
-                    <text x="10" y="50" fill={hasIncident ? '#f87171' : '#34d399'} fontSize="9" fontWeight="bold">
-                      {hasIncident ? `⚠️ ${jIncidents.length} Active Incident(s)` : '● Normal Traffic Flow'}
-                    </text>
-                    <text x="10" y="64" fill="#38bdf8" fontSize="8">Click to Inspect Junction ➔</text>
-                  </g>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Live Weather Overlay Chip */}
-        {activeLayers.weather && weatherData && (
-          <div className="map-weather-chip">
-            <CloudRain size={16} className="text-cyan" />
-            <div>
-              <div className="weather-chip-title">{weatherData.condition} • {weatherData.temperature_c}°C</div>
-              <div className="weather-chip-sub">Surface: {weatherData.road_surface} | Rain: {weatherData.precipitation_mm} mm/h</div>
+            <div style="display: flex; gap: 4px; flex-direction: column;">
+              <button id="btn-select-${j.junction_id}" style="
+                background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+              ">
+                🎯 Select & Inspect Junction
+              </button>
+              <div style="display: flex; gap: 4px; margin-top: 2px;">
+                <button id="btn-nav-origin-${j.junction_id}" style="
+                  flex: 1; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 4px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer;
+                ">
+                  🚩 Route Start
+                </button>
+                <button id="btn-nav-dest-${j.junction_id}" style="
+                  flex: 1; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer;
+                ">
+                  🏁 Destination
+                </button>
+              </div>
             </div>
           </div>
-        )}
+        `;
 
-        {/* Map Legend */}
-        <div className="map-legend">
-          <div className="legend-item"><span className="legend-dot bg-green"></span> Normal Traffic</div>
-          <div className="legend-item"><span className="legend-dot bg-amber"></span> Detour Corridor</div>
-          <div className="legend-item"><span className="legend-dot bg-red"></span> Accident / Blockage</div>
+        marker.bindPopup(popupContent);
+
+        marker.on('popupopen', () => {
+          const btnSelect = document.getElementById(`btn-select-${j.junction_id}`);
+          if (btnSelect) {
+            btnSelect.onclick = () => {
+              if (onSelectJunction) onSelectJunction(j.junction_id);
+            };
+          }
+          const btnOrigin = document.getElementById(`btn-nav-origin-${j.junction_id}`);
+          if (btnOrigin) {
+            btnOrigin.onclick = () => {
+              if (onSetNavOrigin) onSetNavOrigin(j.junction_id);
+            };
+          }
+          const btnDest = document.getElementById(`btn-nav-dest-${j.junction_id}`);
+          if (btnDest) {
+            btnDest.onclick = () => {
+              if (onSetNavDestination) onSetNavDestination(j.junction_id);
+            };
+          }
+        });
+
+        marker.on('click', () => {
+          if (onSelectJunction) onSelectJunction(j.junction_id);
+        });
+
+        markersGroupRef.current.addLayer(marker);
+      });
+    }
+  }, [junctions, selectedJunction, incidents, activeAmbulances, navigationRoute, activeLayers, mapMode]);
+
+  const selectedNode = junctions.find(j => j.junction_id === selectedJunction) || junctions[0];
+
+  return (
+    <div className="live-map-wrapper" style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+      
+      {/* Top Map Toolbar with Real-World City Selector */}
+      <div style={{
+        padding: '0.85rem 1.25rem',
+        background: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        {/* City Selector Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Building2 size={15} color="#0284c7" /> Metropolitan Grid:
+          </span>
+          {Object.entries(CITY_PRESETS).map(([key, city]) => (
+            <button
+              key={key}
+              onClick={() => handleCityChange(key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: currentCity === key ? 800 : 600,
+                background: currentCity === key ? '#0284c7' : '#f1f5f9',
+                color: currentCity === key ? '#ffffff' : '#334155',
+                border: `1px solid ${currentCity === key ? '#0284c7' : '#cbd5e1'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{city.icon}</span> {city.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+
+        {/* Map View & Layer Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={() => {
+              const cityCfg = CITY_PRESETS[currentCity] || CITY_PRESETS.DELHI;
+              if (leafletMapRef.current) leafletMapRef.current.flyTo(cityCfg.center, cityCfg.zoom);
+            }}
+            title="Reset Map View"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.35rem 0.65rem',
+              borderRadius: '6px',
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              color: '#475569',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <RotateCcw size={13} /> Reset View
+          </button>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.35rem 0.65rem',
+            background: '#ecfeff',
+            color: '#0891b2',
+            border: '1px solid #a5f3fc',
+            borderRadius: '6px',
+            fontSize: '0.78rem',
+            fontWeight: 700
+          }}>
+            <Navigation2 size={13} /> Real Street Map (OSM)
+          </span>
         </div>
       </div>
+
+      {/* Real-World Leaflet Map Container */}
+      <div 
+        ref={mapContainerRef} 
+        style={{ 
+          width: '100%', 
+          height: '520px', 
+          background: '#f8fafc',
+          position: 'relative' 
+        }} 
+      />
+
+      {/* Floating Selected Junction Quick HUD */}
+      {selectedNode && (
+        <div style={{
+          position: 'absolute',
+          bottom: '16px',
+          left: '16px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '0.75rem 1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          maxWidth: '360px',
+          zIndex: 1000
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{selectedNode.name}</div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>{selectedNode.junction_id}</span>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '6px' }}>
+            📍 {selectedNode.location || 'Urban Arterial Intersection'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#475569' }}>
+            <span>🌐 <b>GPS:</b> {selectedNode.latitude}° N, {selectedNode.longitude}° E</span>
+            <span>🏛️ <b>City:</b> {selectedNode.city || currentCity}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Active Route Banner (if navigation active) */}
+      {navigationRoute && (
+        <div style={{
+          position: 'absolute',
+          top: '64px',
+          left: '16px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          border: '1.5px solid #0284c7',
+          borderRadius: '10px',
+          padding: '0.65rem 1rem',
+          boxShadow: '0 8px 24px rgba(2, 132, 199, 0.15)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', animation: 'pulse 1.5s infinite' }} />
+          <div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7' }}>⚡ Active Citizen Shortest Path</div>
+            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+              Transit: <b>{Math.round((navigationRoute.total_travel_time_seconds || 180) / 60)} mins</b> ({navigationRoute.total_distance_km || 4.2} km) • {navigationRoute.route_summary || 'Fastest Route'}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

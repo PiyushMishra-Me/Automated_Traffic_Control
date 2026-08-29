@@ -8,7 +8,7 @@ export default function Navbar({ activeIncidentCount = 0, onOpenReportModal }) {
         <div className="brand-icon"><Activity size={24} color="#ffffff" /></div>
         <div className="brand-title">
           <h1>Intelligent Traffic Management &amp; Safety Control</h1>
-          <p>Phase 3.1 — Live Geospatial Map, Upstream Diversion &amp; Weather-Adaptive Signals</p>
+          <p>Real-Time Vision AI, Geospatial City Map &amp; Adaptive Signal Automation</p>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>

@@ -17,6 +17,9 @@ from backend.core.weather.weather_service import weather_service
 
 # Physical segment base distances in kilometers and base free-flow travel times in seconds
 ROAD_SEGMENTS: Dict[Tuple[str, str], Dict] = {
+    # -------------------------------------------------------------
+    # NEW DELHI / NCR SEGMENTS
+    # -------------------------------------------------------------
     ("J-04", "J-01"): {"dist_km": 3.8, "base_sec": 240, "name": "South Radial Expressway", "approach": ApproachEnum.SOUTH},
     ("J-01", "J-04"): {"dist_km": 3.8, "base_sec": 240, "name": "South Radial Expressway", "approach": ApproachEnum.NORTH},
     ("J-01", "J-02"): {"dist_km": 2.6, "base_sec": 160, "name": "East Arterial Corridor B", "approach": ApproachEnum.WEST},
@@ -33,6 +36,50 @@ ROAD_SEGMENTS: Dict[Tuple[str, str], Dict] = {
     ("J-04", "J-05"): {"dist_km": 2.7, "base_sec": 170, "name": "Hospital Access Way", "approach": ApproachEnum.SOUTH},
     ("J-03", "J-05"): {"dist_km": 3.9, "base_sec": 250, "name": "Outer Ring Bypass", "approach": ApproachEnum.NORTH},
     ("J-05", "J-03"): {"dist_km": 3.9, "base_sec": 250, "name": "Outer Ring Bypass", "approach": ApproachEnum.WEST},
+
+    # -------------------------------------------------------------
+    # MUMBAI METROPOLITAN SEGMENTS
+    # -------------------------------------------------------------
+    ("J-BOM-01", "J-BOM-02"): {"dist_km": 5.4, "base_sec": 320, "name": "BKC-Dadar SCLR Connector", "approach": ApproachEnum.SOUTH},
+    ("J-BOM-02", "J-BOM-01"): {"dist_km": 5.4, "base_sec": 320, "name": "BKC-Dadar SCLR Connector", "approach": ApproachEnum.NORTH},
+    ("J-BOM-02", "J-BOM-03"): {"dist_km": 8.2, "base_sec": 480, "name": "Dr. Ambedkar Rd to Marine Drive", "approach": ApproachEnum.SOUTH},
+    ("J-BOM-03", "J-BOM-02"): {"dist_km": 8.2, "base_sec": 480, "name": "Dr. Ambedkar Rd to Marine Drive", "approach": ApproachEnum.NORTH},
+    ("J-BOM-01", "J-BOM-04"): {"dist_km": 6.8, "base_sec": 380, "name": "Western Express Highway BKC-Andheri", "approach": ApproachEnum.NORTH},
+    ("J-BOM-04", "J-BOM-01"): {"dist_km": 6.8, "base_sec": 380, "name": "Western Express Highway BKC-Andheri", "approach": ApproachEnum.SOUTH},
+    ("J-BOM-01", "J-BOM-05"): {"dist_km": 14.5, "base_sec": 720, "name": "Sion-Panvel Vashi Creek Expressway", "approach": ApproachEnum.EAST},
+    ("J-BOM-05", "J-BOM-01"): {"dist_km": 14.5, "base_sec": 720, "name": "Sion-Panvel Vashi Creek Expressway", "approach": ApproachEnum.WEST},
+    ("J-BOM-02", "J-BOM-04"): {"dist_km": 10.2, "base_sec": 550, "name": "Dadar-Andheri Arterial Link", "approach": ApproachEnum.NORTH},
+    ("J-BOM-04", "J-BOM-02"): {"dist_km": 10.2, "base_sec": 550, "name": "Dadar-Andheri Arterial Link", "approach": ApproachEnum.SOUTH},
+    ("J-BOM-03", "J-BOM-05"): {"dist_km": 21.0, "base_sec": 1100, "name": "Eastern Freeway - Navi Mumbai Line", "approach": ApproachEnum.EAST},
+    ("J-BOM-05", "J-BOM-03"): {"dist_km": 21.0, "base_sec": 1100, "name": "Eastern Freeway - Navi Mumbai Line", "approach": ApproachEnum.WEST},
+
+    # -------------------------------------------------------------
+    # HYDERABAD METROPOLITAN SEGMENTS
+    # -------------------------------------------------------------
+    ("J-HYD-01", "J-HYD-02"): {"dist_km": 4.1, "base_sec": 240, "name": "Hitec-Gachibowli BioDiversity Link", "approach": ApproachEnum.WEST},
+    ("J-HYD-02", "J-HYD-01"): {"dist_km": 4.1, "base_sec": 240, "name": "Hitec-Gachibowli BioDiversity Link", "approach": ApproachEnum.EAST},
+    ("J-HYD-01", "J-HYD-03"): {"dist_km": 3.6, "base_sec": 210, "name": "Durgam Cheruvu Cable Bridge Corridor", "approach": ApproachEnum.EAST},
+    ("J-HYD-03", "J-HYD-01"): {"dist_km": 3.6, "base_sec": 210, "name": "Durgam Cheruvu Cable Bridge Corridor", "approach": ApproachEnum.WEST},
+    ("J-HYD-03", "J-HYD-04"): {"dist_km": 6.8, "base_sec": 420, "name": "Panjagutta Begumpet Arterial", "approach": ApproachEnum.EAST},
+    ("J-HYD-04", "J-HYD-03"): {"dist_km": 6.8, "base_sec": 420, "name": "Panjagutta Begumpet Arterial", "approach": ApproachEnum.WEST},
+    ("J-HYD-04", "J-HYD-05"): {"dist_km": 9.5, "base_sec": 580, "name": "Tank Bund - Charminar Heritage Line", "approach": ApproachEnum.SOUTH},
+    ("J-HYD-05", "J-HYD-04"): {"dist_km": 9.5, "base_sec": 580, "name": "Tank Bund - Charminar Heritage Line", "approach": ApproachEnum.NORTH},
+    ("J-HYD-02", "J-HYD-05"): {"dist_km": 16.2, "base_sec": 890, "name": "PVNR Elevated Airport Expressway", "approach": ApproachEnum.EAST},
+    ("J-HYD-05", "J-HYD-02"): {"dist_km": 16.2, "base_sec": 890, "name": "PVNR Elevated Airport Expressway", "approach": ApproachEnum.WEST},
+
+    # -------------------------------------------------------------
+    # BENGALURU METROPOLITAN SEGMENTS
+    # -------------------------------------------------------------
+    ("J-BLR-01", "J-BLR-02"): {"dist_km": 9.8, "base_sec": 520, "name": "Hosur Elevated Expressway (Silk-ECity)", "approach": ApproachEnum.SOUTH},
+    ("J-BLR-02", "J-BLR-01"): {"dist_km": 9.8, "base_sec": 520, "name": "Hosur Elevated Expressway (Silk-ECity)", "approach": ApproachEnum.NORTH},
+    ("J-BLR-01", "J-BLR-03"): {"dist_km": 2.5, "base_sec": 180, "name": "Koramangala 80ft Linkway", "approach": ApproachEnum.NORTH},
+    ("J-BLR-03", "J-BLR-01"): {"dist_km": 2.5, "base_sec": 180, "name": "Koramangala 80ft Linkway", "approach": ApproachEnum.SOUTH},
+    ("J-BLR-03", "J-BLR-04"): {"dist_km": 4.6, "base_sec": 310, "name": "Intermediate Ring Road to Indiranagar", "approach": ApproachEnum.NORTH},
+    ("J-BLR-04", "J-BLR-03"): {"dist_km": 4.6, "base_sec": 310, "name": "Intermediate Ring Road to Indiranagar", "approach": ApproachEnum.SOUTH},
+    ("J-BLR-04", "J-BLR-05"): {"dist_km": 3.2, "base_sec": 220, "name": "Old Madras Road to MG Road", "approach": ApproachEnum.WEST},
+    ("J-BLR-05", "J-BLR-04"): {"dist_km": 3.2, "base_sec": 220, "name": "Old Madras Road to MG Road", "approach": ApproachEnum.EAST},
+    ("J-BLR-05", "J-BLR-01"): {"dist_km": 6.7, "base_sec": 410, "name": "Hosur Road Richmond Corridor", "approach": ApproachEnum.SOUTH},
+    ("J-BLR-01", "J-BLR-05"): {"dist_km": 6.7, "base_sec": 410, "name": "Hosur Road Richmond Corridor", "approach": ApproachEnum.NORTH},
 }
 
 class NavigationEngine:

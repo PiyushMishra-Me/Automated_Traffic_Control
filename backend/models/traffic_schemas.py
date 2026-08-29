@@ -366,6 +366,7 @@ class JunctionCreate(BaseModel):
     )
 
     location: Optional[str] = "Main Avenue & 5th Street"
+    city: Optional[str] = "DELHI"
 
     latitude: float = Field(
         28.6139,
@@ -396,6 +397,7 @@ class JunctionInfo(BaseModel):
     junction_id: str
     name: str
     location: Optional[str] = ""
+    city: Optional[str] = "DELHI"
 
     latitude: float = 28.6139
     longitude: float = 77.2090

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # App
     # =====================================================
 
-    APP_NAME: str = "Intelligent Traffic Management System - Phase 3"
+    APP_NAME: str = "Automated Traffic Control & Intelligent Safety System"
     DEBUG: bool = True
 
     # =====================================================
