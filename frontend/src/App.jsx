@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import JunctionSelector from './components/JunctionSelector';
-import VideoUploader from './components/VideoUploader';
-import ApproachFeedCard from './components/ApproachFeedCard';
-import JunctionOverview from './components/JunctionOverview';
-import AnalyticsHistory from './components/AnalyticsHistory';
-import CountingLineEditor from './components/CountingLineEditor';
-import SignalSimulator from './components/SignalSimulator';
-import DashboardHero from './components/DashboardHero';
+import RoleAuthHeader from './components/RoleAuthHeader';
+import PortalLandingPage from './components/PortalLandingPage';
+import PublicCitizenPortal from './components/PublicCitizenPortal';
+import HospitalEmergencyPortal from './components/HospitalEmergencyPortal';
+import GovernmentCommandPortal from './components/GovernmentCommandPortal';
+import IncidentReportingModal from './components/IncidentReportingModal';
 import { api } from './services/api';
 
 export default function App() {
+  // Role & Gateway State: 'GATEWAY' | 'PUBLIC_USER' | 'HOSPITAL_DISPATCH' | 'GOVERNMENT_OFFICIAL'
+  const [currentRole, setCurrentRole] = useState('GATEWAY');
+  const [userSession, setUserSession] = useState(null);
+
+  // Main Traffic Data & Telemetry
   const [junctions, setJunctions] = useState([]);
   const [selectedJunction, setSelectedJunction] = useState('J-01');
   const [junctionState, setJunctionState] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [incidents, setIncidents] = useState([]);
+  const [activeAmbulances, setActiveAmbulances] = useState([]);
+  const [weatherData, setWeatherData] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [analyticsRefresh, setAnalyticsRefresh] = useState(0);
-  const selectedJunctionData = junctions.find((junction) => junction.junction_id === selectedJunction);
+
+  const activeIncidentCount = incidents.filter(i => i.status === 'ACTIVE').length;
 
   const fetchJunctions = async () => {
     try {
@@ -40,77 +47,149 @@ export default function App() {
     }
   };
 
+  const fetchIncidents = async () => {
+    try {
+      const list = await api.listIncidents();
+      setIncidents(list);
+    } catch (err) {
+      console.error('Failed to load incidents', err);
+    }
+  };
+
+  const fetchAmbulances = async () => {
+    try {
+      const list = await api.listAmbulances();
+      setActiveAmbulances(list);
+    } catch (err) {
+      console.error('Failed to load emergency missions', err);
+    }
+  };
+
+  const fetchWeather = async (jId) => {
+    if (!jId) return;
+    try {
+      const data = await api.getJunctionWeather(jId);
+      setWeatherData(data);
+    } catch (err) {
+      console.error('Failed to fetch weather', err);
+    }
+  };
+
   useEffect(() => {
     fetchJunctions();
+    fetchIncidents();
+    fetchAmbulances();
   }, []);
 
   useEffect(() => {
     if (selectedJunction) {
       fetchJunctionState(selectedJunction);
+      fetchWeather(selectedJunction);
     }
   }, [selectedJunction]);
 
-  const handleJobCompleted = (job) => {
-    // Refresh junction state after a video completes processing
+  const handleRefreshAll = () => {
+    fetchJunctions();
     fetchJunctionState(selectedJunction);
-    setAnalyticsRefresh((current) => current + 1);
+    fetchIncidents();
+    fetchAmbulances();
+    fetchWeather(selectedJunction);
+    setAnalyticsRefresh((c) => c + 1);
+  };
+
+  const handleLogout = () => {
+    setUserSession(null);
+    setCurrentRole('GATEWAY');
   };
 
   return (
     <div className="app-container">
-      <Navbar />
-
-      <DashboardHero
-        junction={selectedJunctionData}
-        state={junctionState}
-        onRefresh={() => { fetchJunctions(); fetchJunctionState(selectedJunction); setAnalyticsRefresh((current) => current + 1); }}
+      <Navbar 
+        activeIncidentCount={activeIncidentCount} 
+        onOpenReportModal={() => setIsReportModalOpen(true)} 
       />
 
-      <div className="top-controls-grid">
-        <JunctionSelector 
-          junctions={junctions}
-          selectedJunction={selectedJunction}
-          onSelectJunction={setSelectedJunction}
-          onRefresh={fetchJunctions}
+      {/* RENDER VIEW 0: FRONT LANDING PORTAL GATEWAY */}
+      {currentRole === 'GATEWAY' && (
+        <PortalLandingPage 
+          onSelectPortal={(role) => setCurrentRole(role)}
         />
+      )}
 
-        <VideoUploader 
-          junctionId={selectedJunction}
-          onJobCompleted={handleJobCompleted}
-        />
-
-        <CountingLineEditor
-          junction={selectedJunctionData}
-          onSaved={(updated) => setJunctions((current) => current.map((junction) => junction.junction_id === updated.junction_id ? updated : junction))}
-        />
-      </div>
-
-      <section className="workspace-section">
-        <div className="section-heading"><div><span className="eyebrow">Live workspace</span><h2>Approach intelligence</h2></div><p>Review the latest processed video for each approach.</p></div>
-
-        <div className="approaches-grid">
-          <ApproachFeedCard 
-            approachName="NORTH" 
-            state={junctionState?.north} 
+      {/* RENDER VIEWS 1, 2, 3: WITH ROLE BANNER */}
+      {currentRole !== 'GATEWAY' && (
+        <>
+          <RoleAuthHeader 
+            currentRole={currentRole}
+            onRoleChange={setCurrentRole}
+            userSession={userSession}
+            onLoginSuccess={setUserSession}
+            onLogout={handleLogout}
           />
-          <ApproachFeedCard 
-            approachName="SOUTH" 
-            state={junctionState?.south} 
-          />
-          <ApproachFeedCard 
-            approachName="EAST" 
-            state={junctionState?.east} 
-          />
-          <ApproachFeedCard 
-            approachName="WEST" 
-            state={junctionState?.west} 
-          />
-        </div>
-      </section>
 
-      <JunctionOverview junctionState={junctionState} />
-      <SignalSimulator junctionId={selectedJunction} refreshKey={analyticsRefresh} />
-      <AnalyticsHistory junctionId={selectedJunction} refreshKey={analyticsRefresh} />
+          {/* VIEW 1: PUBLIC CITIZEN PORTAL */}
+          {currentRole === 'PUBLIC_USER' && (
+            <PublicCitizenPortal 
+              junctions={junctions}
+              selectedJunction={selectedJunction}
+              onSelectJunction={setSelectedJunction}
+              incidents={incidents}
+              weatherData={weatherData}
+              onOpenReportModal={() => setIsReportModalOpen(true)}
+              onWeatherUpdated={(updated) => {
+                setWeatherData(updated);
+                handleRefreshAll();
+              }}
+            />
+          )}
+
+          {/* VIEW 2: EMERGENCY SERVICES PORTAL */}
+          {currentRole === 'HOSPITAL_DISPATCH' && (
+            <HospitalEmergencyPortal 
+              userSession={userSession}
+              onMissionUpdated={() => {
+                fetchAmbulances();
+                fetchJunctionState(selectedJunction);
+              }}
+            />
+          )}
+
+          {/* VIEW 3: GOVERNMENT & POLICE COMMAND CENTER */}
+          {currentRole === 'GOVERNMENT_OFFICIAL' && (
+            <GovernmentCommandPortal 
+              junctions={junctions}
+              selectedJunction={selectedJunction}
+              onSelectJunction={setSelectedJunction}
+              userSession={userSession}
+              onOpenReportModal={() => setIsReportModalOpen(true)}
+              weatherData={weatherData}
+              onWeatherUpdated={(updated) => {
+                setWeatherData(updated);
+                handleRefreshAll();
+              }}
+              analyticsRefresh={analyticsRefresh}
+              onRefreshAll={handleRefreshAll}
+              onJobCompleted={() => {
+                fetchJunctionState(selectedJunction);
+                setAnalyticsRefresh(c => c + 1);
+              }}
+            />
+          )}
+        </>
+      )}
+
+      {/* MANDATORY LIVE ON-THE-SPOT CAMERA CAPTURE MODAL */}
+      <IncidentReportingModal 
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        junctions={junctions}
+        currentJunction={selectedJunction}
+        onIncidentReported={() => {
+          fetchIncidents();
+          fetchJunctionState(selectedJunction);
+          setAnalyticsRefresh(c => c + 1);
+        }}
+      />
     </div>
   );
 }

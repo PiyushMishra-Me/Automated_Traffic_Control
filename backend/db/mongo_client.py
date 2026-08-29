@@ -10,11 +10,13 @@ class MongoDBManager:
         self.client = None
         self.db = None
         self.is_connected = False
+        self._tried_connect = False
         self._connect()
 
     def _connect(self):
+        self._tried_connect = True
         try:
-            self.client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2000)
+            self.client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=1000)
             # Verify connection
             self.client.admin.command("ping")
             self.db = self.client[settings.DATABASE_NAME]
@@ -27,8 +29,9 @@ class MongoDBManager:
             logger.warning(f"MongoDB not reachable at {settings.MONGODB_URI} ({e}). Running in in-memory mode for local dev.")
 
     def get_database(self):
-        if not self.is_connected or self.db is None:
+        if not self._tried_connect:
             self._connect()
         return self.db
 
 db_manager = MongoDBManager()
+

@@ -1,75 +1,89 @@
 """
-decision_engine.py
-High-level interface and facade for the 4-approach traffic signal decision engine.
-Ingests traffic metrics from external vision/aggregator feeds and outputs signal decisions.
+junction_config.py
+Configuration parameters for the 4-approach junction decision engine.
+All PCU coefficients, normalization thresholds, priority weights,
+and signal timing intervals are defined here and are fully configurable.
 """
 
-from typing import Dict, Optional, Any
-from backend.decisionbackend.junction_config import JunctionConfig
-from backend.decisionbackend.models import (
-    Approach,
-    DirectionTraffic,
-    SignalDecision,
-)
-from backend.decisionbackend.signal_controller import SignalController
-from backend.decisionbackend.pcu import calculate_queue_pcu
+from dataclasses import dataclass, field
+from typing import Dict
 
 
-class DecisionEngine:
+@dataclass
+class PCUConfig:
     """
-    Facade class managing the traffic decision engine lifecycle.
+    Field-measured Indian PCU coefficients (do NOT use textbook IRC values).
+    - TWO_WHEELER: 0.13
+    - CAR: 1.00
+    - AUTO_RICKSHAW: 0.75
+    - BUS: 5.40
+    - TRUCK: 3.70
     """
+    two_wheeler: float = 0.13
+    car: float = 1.00
+    auto_rickshaw: float = 0.75
+    bus: float = 5.40
+    truck: float = 3.70
 
-    def __init__(self, config: Optional[JunctionConfig] = None, initial_green: Optional[Approach] = Approach.NORTH):
-        self.config = config or JunctionConfig()
-        self.controller = SignalController(config=self.config, initial_green=initial_green)
-
-    def process_tick(
-        self,
-        traffic_inputs: Dict[Approach, DirectionTraffic],
-        dt: Optional[float] = None
-    ) -> SignalDecision:
-        """
-        Processes one decision cycle with structured DirectionTraffic objects.
-        """
-        return self.controller.step(traffic_inputs, dt=dt)
-
-    def process_raw_counts(
-        self,
-        approach_data: Dict[str, Dict[str, Any]],
-        dt: Optional[float] = None
-    ) -> SignalDecision:
-        """
-        Convenience ingestion method accepting dictionary of raw counts.
-        
-        Example approach_data format:
-        {
-            "NORTH": {"vehicle_counts": {"car": 5, "bus": 1}, "flow_rate": 4.0, "time_since_last_vehicle": 1.0},
-            "SOUTH": {"vehicle_counts": {"two_wheeler": 10}, "flow_rate": 2.0, "time_since_last_vehicle": 5.0},
-            ...
+    def to_dict(self) -> Dict[str, float]:
+        return {
+            "two_wheeler": self.two_wheeler,
+            "motorcycle": self.two_wheeler,
+            "bike": self.two_wheeler,
+            "car": self.car,
+            "auto_rickshaw": self.auto_rickshaw,
+            "auto": self.auto_rickshaw,
+            "bus": self.bus,
+            "truck": self.truck,
         }
-        """
-        inputs = {}
-        for app in [Approach.NORTH, Approach.SOUTH, Approach.EAST, Approach.WEST]:
-            raw = approach_data.get(app.value, approach_data.get(app, {}))
-            v_counts = raw.get("vehicle_counts", {})
-            q_pcu = raw.get("queue_pcu")
-            if q_pcu is None:
-                q_pcu = calculate_queue_pcu(v_counts, self.config.pcu)
 
-            flow = float(raw.get("flow_rate", 0.0))
-            time_since_pass = float(raw.get("time_since_last_vehicle", 0.0))
-            crossed_recent = int(raw.get("vehicles_crossed_recently", 0))
 
-            inputs[app] = DirectionTraffic(
-                direction=app,
-                vehicle_counts=v_counts,
-                queue_pcu=q_pcu,
-                wait_time=self.controller.state.wait_times[app],
-                flow_rate=flow,
-                vehicles_waiting=sum(v_counts.values()),
-                vehicles_crossed_recently=crossed_recent,
-                time_since_last_vehicle_passed=time_since_pass
-            )
+@dataclass
+class NormalizationConfig:
+    """
+    Normalization reference ceilings for raw metrics:
+    - Queue_norm = min(Queue_PCU / queue_pcu_max, 1.0)
+    - WaitTime_norm = min(WaitTime / wait_time_ref, 1.0)
+    - FlowRate_norm = min(FlowRate / flow_rate_max, 1.0)
+    """
+    queue_pcu_max: float = 40.0      # Max expected queued PCU
+    wait_time_ref: float = 90.0      # Reference max wait time in seconds
+    flow_rate_max: float = 12.0      # Reference max flow rate in PCU/min
 
-        return self.process_tick(inputs, dt=dt)
+
+@dataclass
+class PriorityWeights:
+    """
+    Weights for calculating priority score P(d) = w_queue*Q_norm + w_wait*W_norm + w_flow*F_norm.
+    Must sum to 1.0. Fixed weights: 0.45, 0.35, 0.20.
+    """
+    w_queue: float = 0.45
+    w_wait: float = 0.35
+    w_flow: float = 0.20
+
+
+@dataclass
+class SignalTimingConfig:
+    """
+    Dynamic signal timing bounds and clearance intervals.
+    """
+    g_min: float = 10.0                      # Minimum green duration in seconds
+    g_max: float = 40.0                      # Maximum green duration in seconds
+    yellow_time: float = 3.0                 # Yellow clearance interval in seconds
+    all_red_time: float = 2.0                # All-Red clearance interval in seconds
+    gap_out_time: float = 3.0                # Max allowed gap headway before terminating green
+    decision_interval: float = 1.0           # Seconds per decision tick
+    empty_queue_threshold_pcu: float = 0.5   # PCU below which queue is considered cleared
+    priority_switch_threshold: float = 0.25  # Priority delta needed to preempt green after G_MIN
+
+
+@dataclass
+class JunctionConfig:
+    """
+    Composite configuration for a single 4-approach intersection.
+    """
+    junction_id: str = "J-DEFAULT"
+    pcu: PCUConfig = field(default_factory=PCUConfig)
+    normalization: NormalizationConfig = field(default_factory=NormalizationConfig)
+    weights: PriorityWeights = field(default_factory=PriorityWeights)
+    timing: SignalTimingConfig = field(default_factory=SignalTimingConfig)

@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from backend.config import settings
 from backend.models.traffic_schemas import (
@@ -168,6 +168,7 @@ class VideoProcessor:
             camera_config: Optional[
                 CameraConfig
             ] = None,
+            emergency_bridge: Optional[Any] = None,
     ) -> ApproachTrafficState:
 
         """
@@ -465,6 +466,19 @@ class VideoProcessor:
                         state.model_copy(
                             deep=True
                         )
+                    )
+
+                # -----------------------------------------
+                # EMERGENCY VEHICLE BRIDGE
+                # -----------------------------------------
+
+                if emergency_bridge is not None:
+                    emergency_bridge.process_frame(
+                        vehicles=tracked_vehicles,
+                        counting_line_config=metrics_calculator.line_config,
+                        frame_width=width,
+                        frame_height=height,
+                        fps=fps,
                     )
 
                 # -----------------------------------------

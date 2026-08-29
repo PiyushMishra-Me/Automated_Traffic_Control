@@ -7,7 +7,80 @@ _memory_junctions: dict[str, dict] = {
     "J-01": {
         "junction_id": "J-01",
         "name": "Central Plaza Intersection",
-        "location": "Main St & 4th Avenue",
+        "location": "Connaught Outer Circle & Barakhamba",
+        "latitude": 28.6315,
+        "longitude": 77.2167,
+        "road_names": {
+            "NORTH": "North Boulevard",
+            "SOUTH": "South Radial Expressway",
+            "EAST": "East Arterial Corridor B",
+            "WEST": "West Commercial Linkway"
+        },
+        "connected_junctions": ["J-02", "J-03", "J-04", "J-05"],
+        "created_at": datetime.now(timezone.utc),
+        "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"]
+    },
+    "J-02": {
+        "junction_id": "J-02",
+        "name": "Tech City Interchange",
+        "location": "East Ring Arterial & IT Hubway",
+        "latitude": 28.6385,
+        "longitude": 77.2310,
+        "road_names": {
+            "NORTH": "Tech Park Loop",
+            "SOUTH": "Subway Bypass",
+            "EAST": "Industrial Outer Way",
+            "WEST": "Central Connection Road"
+        },
+        "connected_junctions": ["J-01", "J-03", "J-04"],
+        "created_at": datetime.now(timezone.utc),
+        "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"]
+    },
+    "J-03": {
+        "junction_id": "J-03",
+        "name": "North Ring Crossing",
+        "location": "North Ring Road & University Ave",
+        "latitude": 28.6460,
+        "longitude": 77.2110,
+        "road_names": {
+            "NORTH": "Grand Trunk Extension",
+            "SOUTH": "North Boulevard",
+            "EAST": "Campus Flyover",
+            "WEST": "Civil Lines Passage"
+        },
+        "connected_junctions": ["J-01", "J-02", "J-05"],
+        "created_at": datetime.now(timezone.utc),
+        "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"]
+    },
+    "J-04": {
+        "junction_id": "J-04",
+        "name": "Metro Transit Interchange",
+        "location": "South Radial & Metro Line 3",
+        "latitude": 28.6180,
+        "longitude": 77.2190,
+        "road_names": {
+            "NORTH": "South Radial Expressway",
+            "SOUTH": "Ring Road South",
+            "EAST": "Station Terminal Road",
+            "WEST": "Hospital Access Way"
+        },
+        "connected_junctions": ["J-01", "J-02", "J-05"],
+        "created_at": datetime.now(timezone.utc),
+        "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"]
+    },
+    "J-05": {
+        "junction_id": "J-05",
+        "name": "West Commercial Gateway",
+        "location": "West Linkway & Financial District",
+        "latitude": 28.6250,
+        "longitude": 77.1990,
+        "road_names": {
+            "NORTH": "Diplomatic Enclave Lane",
+            "SOUTH": "Market Central Access",
+            "EAST": "West Commercial Linkway",
+            "WEST": "Airport Express Link"
+        },
+        "connected_junctions": ["J-01", "J-03", "J-04"],
         "created_at": datetime.now(timezone.utc),
         "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"]
     }
@@ -29,6 +102,10 @@ class JunctionRepository:
             "junction_id": junction.junction_id,
             "name": junction.name,
             "location": junction.location or "",
+            "latitude": junction.latitude,
+            "longitude": junction.longitude,
+            "road_names": junction.road_names or {},
+            "connected_junctions": junction.connected_junctions or [],
             "created_at": datetime.now(timezone.utc),
             "approaches_configured": ["NORTH", "SOUTH", "EAST", "WEST"],
             "custom_counting_lines": junction.custom_counting_lines.dict() if junction.custom_counting_lines else {}

@@ -1,44 +1,36 @@
 # Intelligent Traffic Management and Road Safety System
-## Phase 1 — Real-Time Multi-Approach Traffic Monitoring Foundation
+## Phase 3.1 — Live Geospatial Traffic Map, Upstream Diversion & Weather-Adaptive Control
 
-A college-level SIH prototype implementing approach-specific traffic monitoring with **YOLOv8n** vehicle detection, **ByteTrack** tracking, per-approach analytics, 4-way junction aggregation, historical observations, camera calibration, **MongoDB** persistence, and a **React** dashboard.
+A complete prototype implementing approach-specific traffic monitoring with **YOLOv8n** vehicle detection, **ByteTrack** tracking, per-approach analytics, 4-way junction aggregation, **Live Interactive Geospatial Map**, **Accident & Upstream Traffic Diversion Engine**, **Open-Meteo Weather-Adaptive Signal Control**, and a **React** dashboard.
 
 ---
 
-## Key Features through Phase 2
+## Key Features through Phase 3.1
 
 1. **Approach-Specific Architecture**:
    - Each uploaded video represents a dedicated camera feed for one road approach (**NORTH**, **SOUTH**, **EAST**, or **WEST**).
-   - No quadrant splitting of a single video feed.
-2. **YOLOv8n Vehicle Detection**:
-   - Detects `car`, `motorcycle`, `bus`, and `truck` classes using a lightweight neural network.
-3. **ByteTrack Vehicle Tracking**:
-   - Maintains persistent track IDs across frames to prevent duplicate counting.
-4. **Traffic Analytics Engine**:
-   - **Current Vehicle Count**: Active vehicles in current frame/scene.
-   - **Class Breakdown**: Counts for cars, bikes, buses, trucks.
-   - **Traffic Flow**: Cumulative count of vehicles crossing the virtual counting line.
-   - **Estimated Queue Length**: Approximate count of slow-moving/stationary vehicles.
-   - **Traffic Density**: Area occupancy and spatial concentration index (0.0 to 1.0).
-   - **Traffic Level**: Categorized as `LOW`, `MEDIUM`, `HIGH`, or `VERY HIGH`.
-5. **Configurable Counting Lines**:
-   - Independent counting line geometry for each directional approach (North, South, East, West) to match varying camera viewpoints.
-6. **Junction Traffic State Aggregation**:
-   - Unified 4-approach state matrix representing the entire intersection condition (ready for downstream adaptive signal controllers in future phases).
-7. **MongoDB Storage**:
-   - Persists granular traffic observations and junction configurations.
+   - Normalized coordinate system per camera perspective.
+2. **YOLOv8 Vehicle Detection & ByteTrack**:
+   - Detects `car`, `motorcycle`, `bus`, and `truck` classes.
+   - Maintains persistent track IDs across frames.
+3. **Traffic Analytics Engine**:
+   - Vehicle counts, class breakdown, flow rates, queue estimation, spatial density index, and traffic level categorization (`LOW`, `MEDIUM`, `HIGH`, `VERY HIGH`).
+4. **Live Urban Geospatial Map**:
+   - Interactive vector map displaying interconnected junction nodes with live traffic status colors (Green, Amber, Red, Hazard Pulse).
+   - Real-time road corridors with animated flow dashes, detour arcs, and interactive node tooltips with one-click junction selection.
+5. **Accident & Incident Management with Upstream Traffic Diversions**:
+   - Portal for reporting accidents, vehicle breakdowns, road blockages, and waterlogging.
+   - **Automated Upstream Diversion Algorithm**: Computes alternate detour bypass routes (e.g., Northbound traffic diverted via East Arterial to J-02), cuts green time on blocked roads, and extends bypass green phases by $+15$s to $+25$s to clear bottlenecks.
+6. **Weather Checking & Weather-Adaptive Signal Control**:
+   - Integrates live meteorological telemetry from **Open-Meteo API** (temperature, rainfall, wind, visibility, road friction factor).
+   - Dynamically extends yellow transition intervals ($+1.5$s) and all-red clearance intervals ($+2.0$s) during rain/fog to prevent skidding in dilemma zones.
+   - Computes dynamic speed limit advisories (e.g. $35$ km/h on wet asphalt).
+   - Includes on-demand scenario testing (Heavy Rain, Fog, Storm, Clear Skies).
+7. **Adaptive Signal Simulator & Decision Backend**:
+   - Rule-based multi-criteria priority engine (`G_MIN` safety, `G_MAX` enforcement, empty queue/gap-out termination, single green invariant).
+   - Indian PCU weighting and continuous wait-time tracking.
 8. **React Monitoring Dashboard**:
-   - Select or create junctions (e.g., `J-01`).
-   - Upload traffic videos for specific directional approaches.
-   - Real-time progress indicators.
-   - Replay annotated videos with bounding boxes, track IDs, counting line, and HUD overlay.
-   - View approach statistics and intersection-wide aggregated metrics.
-9. **Historical Analytics (Phase 2)**:
-   - Stores each completed-video observation and exposes per-junction or per-approach history.
-   - Dashboard summary shows average/peak vehicle count, density, queue, flow, and a recent-observation chart.
-10. **Camera Calibration (Phase 2)**:
-   - Configure a normalized virtual counting line for each junction approach from the dashboard.
-   - Saved calibration is used the next time a video is processed for that approach.
+   - Live visual signal simulation, historical analytics trend charts, video upload & HUD replay, and virtual tripwire calibrator.
 
 ---
 
@@ -52,32 +44,39 @@ traffic_management/
 │   ├── api/
 │   │   ├── routes_junction.py   # Junction CRUD & aggregated state
 │   │   ├── routes_video.py      # Video upload, processing & streaming
-│   │   └── routes_analytics.py  # Traffic observations & queries
+│   │   ├── routes_analytics.py  # Traffic observations & queries
+│   │   ├── routes_incident.py   # Incident reporting & upstream diversion API
+│   │   └── routes_weather.py    # Live weather telemetry & simulation override API
 │   ├── core/
 │   │   ├── vision/
 │   │   │   ├── detector.py      # YOLOv8n vehicle detector
 │   │   │   ├── tracker.py       # ByteTrack vehicle tracker
 │   │   │   └── video_processor.py # Video inference, HUD overlay, annotation
-│   │   └── analytics/
-│   │       ├── traffic_metrics.py # Queue estimation, density, flow rate
-│   │       └── junction_aggregator.py # 4-way junction state aggregation
+│   │   ├── analytics/
+│   │   │   ├── traffic_metrics.py # Queue estimation, density, flow rate
+│   │   │   └── junction_aggregator.py # 4-way junction state aggregation
+│   │   ├── control/
+│   │   │   ├── adaptive_signal.py # Weather & incident aware adaptive controller
+│   │   │   ├── diversion_engine.py# Upstream rerouting & signal compensation
+│   │   │   └── signal_simulation.py # Deterministic time-stepped simulation
+│   │   └── weather/
+│   │       └── weather_service.py # Open-Meteo live weather client & road safety
+│   ├── decisionbackend/         # 4-approach PCU decision engine & test suite
 │   ├── db/
 │   │   ├── mongo_client.py      # MongoDB connection manager
-│   │   └── repositories/        # Observation and junction repositories
-│   ├── models/
-│   │   └── traffic_schemas.py   # Pydantic schemas
+│   │   └── repositories/        # Observation, junction, & incident repositories
 │   └── tests/                   # Pytest test suite
 ├── frontend/                    # React + Vite dashboard
 │   └── src/
-│       ├── components/          # JunctionSelector, VideoUploader, ApproachFeedCard, JunctionOverview
+│       ├── components/
+│       │   ├── LiveJunctionMap.jsx # Interactive live geospatial map
+│       │   ├── WeatherWidget.jsx   # Live weather telemetry & road friction
+│       │   ├── IncidentManager.jsx # Incident & diversion management hub
+│       │   ├── IncidentReportingModal.jsx # Accident reporting dialog
+│       │   ├── SignalSimulator.jsx # Adaptive signal simulator
+│       │   └── ...
 │       ├── services/api.js      # REST API client
 │       └── App.jsx
-├── data/
-│   ├── uploads/                 # Input traffic videos
-│   └── annotated/               # Annotated output videos
-├── scripts/
-│   ├── verify_pipeline.py       # End-to-end verification script
-│   └── download_sample_video.py # Sample video utility
 └── requirements.txt             # Python dependencies
 ```
 
@@ -85,16 +84,14 @@ traffic_management/
 
 ## How to Run Locally
 
-Install FFmpeg first and ensure its `bin` folder is on your system `PATH`. The backend uses it to encode annotated videos as browser-playable H.264 MP4 files.
-
 ### 1. Start the Backend
 
 ```bash
-# In project root: traffic_management
+# In project root: Automated_Traffic_Control
 python -m pip install -r requirements.txt
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-API Documentation: `http://localhost:8000/docs`
+API Docs: `http://localhost:8000/docs`
 
 ### 2. Start the Frontend Dashboard
 
@@ -106,25 +103,6 @@ npm run dev
 ```
 Dashboard UI: `http://localhost:5173`
 
-## Phase 2 API additions
-
-- `PUT /api/junctions/{junction_id}/counting-lines` saves calibrated counting lines. Coordinates are normalized from `0` to `1`.
-- `GET /api/analytics/junction/{junction_id}/history?approach=NORTH&limit=50` returns latest-first completed-video observations.
-- `GET /api/analytics/junction/{junction_id}/summary?approach=NORTH` returns aggregate operational metrics.
-
-## Phase 3 adaptive signal simulator
-
-Phase 3 is a decision-support simulator, not a traffic-light controller. It scores each approach using active vehicles, estimated queue, density, and traffic level; then recommends either a North/South or East/West green phase. The response includes a bounded recommended green duration, the mandatory yellow/all-red transition durations, and congestion alerts.
-
-- `GET /api/junctions/{junction_id}/signal-recommendation` returns the current safe simulation recommendation.
-- `POST /api/junctions/{junction_id}/signal-simulation` runs the same calculation explicitly for the dashboard simulator.
-
-No physical controller is contacted or changed by either endpoint.
-
-## Scope and safety
-
-This application processes uploaded, recorded traffic video. It does not yet connect to live cameras or operate physical traffic lights. Any future signal-control integration should use a simulator, manual override, fail-safe state, authorization, and a jurisdiction-approved controller interface.
-
 ---
 
 ## Running Tests
@@ -133,6 +111,6 @@ This application processes uploaded, recorded traffic video. It does not yet con
 # Run unit & API test suite
 python -m pytest backend/tests -v
 
-# Run full end-to-end video pipeline verification
-python scripts/verify_pipeline.py
+# Run decision engine test suite
+python -m pytest backend/decisionbackend/tests.py -v
 ```

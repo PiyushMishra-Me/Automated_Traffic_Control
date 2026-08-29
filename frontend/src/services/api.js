@@ -42,7 +42,8 @@ export const api = {
 
   async simulateSignal(junctionId, horizonSeconds = 180) {
     const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-simulation`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ current_phase: 'ALL_RED', horizon_seconds: horizonSeconds }),
     });
     if (!res.ok) throw new Error('Failed to run signal simulation');
@@ -90,6 +91,157 @@ export const api = {
     const suffix = params.toString() ? `?${params}` : '';
     const res = await fetch(`${API_BASE}/analytics/junction/${junctionId}/summary${suffix}`);
     if (!res.ok) throw new Error('Failed to fetch analytics summary');
+    return res.json();
+  },
+
+  // Incidents & Diversions
+  async listIncidents(junctionId = null, status = null) {
+    const params = new URLSearchParams();
+    if (junctionId) params.set('junction_id', junctionId);
+    if (status) params.set('status', status);
+    const suffix = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE}/incidents${suffix}`);
+    if (!res.ok) throw new Error('Failed to fetch incidents');
+    return res.json();
+  },
+
+  async reportIncident(data) {
+    const res = await fetch(`${API_BASE}/incidents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to submit incident report');
+    return res.json();
+  },
+
+  async updateIncidentStatus(incidentId, status) {
+    const res = await fetch(`${API_BASE}/incidents/${incidentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error('Failed to update incident status');
+    return res.json();
+  },
+
+  async getActiveDiversions(junctionId) {
+    const res = await fetch(`${API_BASE}/incidents/junction/${junctionId}/active-diversions`);
+    if (!res.ok) throw new Error('Failed to fetch active diversions');
+    return res.json();
+  },
+
+  // Weather
+  async getJunctionWeather(junctionId) {
+    const res = await fetch(`${API_BASE}/weather/junction/${junctionId}`);
+    if (!res.ok) throw new Error('Failed to fetch weather telemetry');
+    return res.json();
+  },
+
+  async overrideJunctionWeather(junctionId, data) {
+    const res = await fetch(`${API_BASE}/weather/junction/${junctionId}/override`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to override weather condition');
+    return res.json();
+  },
+
+  async clearWeatherOverride(junctionId) {
+    const res = await fetch(`${API_BASE}/weather/junction/${junctionId}/override`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to clear weather override');
+    return res.json();
+  },
+
+  // Auth & Roles
+  async getAuthProfiles() {
+    const res = await fetch(`${API_BASE}/auth/profiles`);
+    if (!res.ok) throw new Error('Failed to fetch auth profiles');
+    return res.json();
+  },
+
+  async loginRole(role, username, password, organizationName = null) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        role,
+        username,
+        password,
+        organization_name: organizationName,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
+      throw new Error(err.detail || 'Authentication failed');
+    }
+    return res.json();
+  },
+
+  // Ambulance & Emergency Green Wave
+  async registerAmbulance(data) {
+    const res = await fetch(`${API_BASE}/ambulances/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to register ambulance mission' }));
+      throw new Error(err.detail || 'Failed to register ambulance mission');
+    }
+    return res.json();
+  },
+
+  async listAmbulances(status = null, hospitalName = null) {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (hospitalName) params.set('hospital_name', hospitalName);
+    const suffix = params.toString() ? `?${params}` : '';
+    const res = await fetch(`${API_BASE}/ambulances${suffix}`);
+    if (!res.ok) throw new Error('Failed to fetch ambulance missions');
+    return res.json();
+  },
+
+  async getAmbulanceMission(missionId) {
+    const res = await fetch(`${API_BASE}/ambulances/${missionId}`);
+    if (!res.ok) throw new Error('Failed to fetch ambulance mission');
+    return res.json();
+  },
+
+  async updateAmbulanceStatus(missionId, newStatus) {
+    const res = await fetch(`${API_BASE}/ambulances/${missionId}/status?new_status=${newStatus}`, {
+      method: 'PATCH',
+    });
+    if (!res.ok) throw new Error('Failed to update ambulance status');
+    return res.json();
+  },
+
+  async getJunctionPreemption(junctionId) {
+    const res = await fetch(`${API_BASE}/ambulances/junction/${junctionId}/preemption`);
+    if (!res.ok) throw new Error('Failed to fetch junction preemption status');
+    return res.json();
+  },
+
+  // Public Navigation & Optimal Route Pathfinder
+  async calculateOptimalRoute(payload) {
+    const res = await fetch(`${API_BASE}/navigation/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to calculate optimal route' }));
+      throw new Error(err.detail || 'Failed to calculate optimal route');
+    }
+    return res.json();
+  },
+
+  async getCorridorStatuses() {
+    const res = await fetch(`${API_BASE}/navigation/corridors`);
+    if (!res.ok) throw new Error('Failed to fetch corridor statuses');
     return res.json();
   },
 };
