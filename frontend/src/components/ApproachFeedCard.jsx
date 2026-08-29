@@ -8,14 +8,22 @@ const LEVEL_CLASS_MAP = {
   'VERY HIGH': 'badge-very-high'
 };
 
-export default function ApproachFeedCard({ approachName, state, liveStream }) {
+export default function ApproachFeedCard({ approachName, state, liveStream, junctionId }) {
   const level = state?.traffic_level || 'LOW';
   const badgeClass = LEVEL_CLASS_MAP[level] || 'badge-low';
 
   const classCounts = state?.class_counts || { car: 0, motorcycle: 0, bus: 0, truck: 0 };
   const ambulanceCount = classCounts.ambulance || state?.ambulance_count || 0;
 
-  const isHttpLiveStream = liveStream?.is_active && liveStream?.stream_url && (liveStream.stream_url.startsWith('http://') || liveStream.stream_url.startsWith('https://'));
+  const [streamError, setStreamError] = React.useState(false);
+  const jId = junctionId || liveStream?.junction_id;
+  const isLiveActive = Boolean(liveStream && liveStream.is_active && liveStream.stream_url);
+  const liveInferenceUrl = jId ? `/api/videos/live/${jId}/${approachName}/annotated-stream` : null;
+
+  // Reset stream error if live stream config changes
+  React.useEffect(() => {
+    setStreamError(false);
+  }, [liveStream?.stream_url, jId]);
 
   return (
     <div className="approach-card">
@@ -25,9 +33,9 @@ export default function ApproachFeedCard({ approachName, state, liveStream }) {
           <span>{approachName} APPROACH</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          {isHttpLiveStream && (
+          {isLiveActive && (
             <span className="badge-level" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              ● LIVE STREAM
+              ● LIVE AI FEED
             </span>
           )}
           {ambulanceCount > 0 && (
@@ -42,19 +50,20 @@ export default function ApproachFeedCard({ approachName, state, liveStream }) {
       </div>
 
       <div className="video-container">
-        {isHttpLiveStream ? (
+        {isLiveActive ? (
           <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
             <img 
-              src={liveStream.stream_url} 
-              alt={`${approachName} Live Camera Stream`} 
+              src={!streamError && liveInferenceUrl ? liveInferenceUrl : liveStream.stream_url} 
+              alt={`${approachName} Live Vision AI Feed`} 
               className="video-player"
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              onError={(e) => {
-                console.warn('Live stream connection error', e);
+              onError={() => {
+                if (!streamError) setStreamError(true);
               }}
             />
-            <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.75)', color: '#10b981', padding: '4px 8px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800, border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} /> LIVE CAMERA FEED
+            <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.8)', color: '#10b981', padding: '4px 8px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800, border: '1px solid rgba(16,185,129,0.35)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} /> 
+              {!streamError ? 'LIVE YOLO + AMBULANCE AI' : 'LIVE RAW STREAM'}
             </div>
           </div>
         ) : state?.annotated_video_url ? (

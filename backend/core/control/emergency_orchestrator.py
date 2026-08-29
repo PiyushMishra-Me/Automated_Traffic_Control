@@ -397,5 +397,81 @@ class EmergencyOrchestrator:
         }
 
 
+    def notify_live_ambulance_detected(
+        self,
+        junction_id: str,
+        approach: Union[ApproachEnum, Approach, str],
+        ambulance_count: int = 1
+    ):
+        """
+        Triggered when a live CCTV camera stream detects an emergency vehicle on an approach.
+        1. Activates immediate emergency preemption (Green Lock) on the local junction approach.
+        2. Inspects interconnected grid neighbors to find connected downstream corridor junctions.
+        3. Pre-notifies the downstream interconnected junction to initiate early queue flushing
+           and advance green-wave clearance before the ambulance arrives.
+        """
+        app_decision = to_decision_approach(approach)
+        emergency_id = f"live_amb_{junction_id}_{app_decision.value}"
+        
+        # 1. Activate local junction preemption
+        adapter = self.get_or_create_junction_adapter(junction_id)
+        adapter.on_emergency_detected(
+            EmergencyDetectionEvent(
+                emergency_id=emergency_id,
+                junction_id=junction_id,
+                approach=app_decision,
+                eta=0.0,
+                vehicle_type=EmergencyVehicleType.AMBULANCE,
+                timestamp=time.time(),
+                tracking_metadata={"source": "LIVE_CCTV_STREAM", "ambulance_count": ambulance_count}
+            )
+        )
+        
+        # 2. Find interconnected downstream junction from grid topology
+        app_enum = ApproachEnum(app_decision.value)
+        downstream_junction = None
+        downstream_approach = None
+        
+        # Grid neighbor corridor connections
+        for (src_j, dest_j), (corr_app, corr_name) in CORRIDOR_MAP.items():
+            if src_j == junction_id and corr_app == app_enum:
+                downstream_junction = dest_j
+                reciprocal = CORRIDOR_MAP.get((dest_j, src_j))
+                downstream_approach = reciprocal[0] if reciprocal else corr_app
+                break
+                
+        # If not found via direct corridor, use connected radial neighbor
+        if not downstream_junction:
+            grid_links = {
+                "J-01": {"NORTH": "J-03", "SOUTH": "J-04", "EAST": "J-02", "WEST": "J-05"},
+                "J-02": {"WEST": "J-01", "NORTH": "J-03", "SOUTH": "J-04"},
+                "J-03": {"SOUTH": "J-01", "EAST": "J-02", "WEST": "J-05"},
+                "J-04": {"NORTH": "J-01", "EAST": "J-02", "WEST": "J-05"},
+                "J-05": {"EAST": "J-01", "NORTH": "J-03", "SOUTH": "J-04"},
+            }
+            downstream_junction = grid_links.get(junction_id, {}).get(app_enum.value)
+            if downstream_junction:
+                reciprocal_map = {"NORTH": ApproachEnum.SOUTH, "SOUTH": ApproachEnum.NORTH, "EAST": ApproachEnum.WEST, "WEST": ApproachEnum.EAST}
+                downstream_approach = reciprocal_map.get(app_enum.value, app_enum)
+
+        # 3. Pre-notify interconnected downstream junction
+        if downstream_junction and downstream_approach:
+            downstream_adapter = self.get_or_create_junction_adapter(downstream_junction)
+            downstream_app_decision = to_decision_approach(downstream_approach)
+            downstream_adapter.on_emergency_detected(
+                EmergencyDetectionEvent(
+                    emergency_id=f"{emergency_id}_downstream",
+                    junction_id=downstream_junction,
+                    approach=downstream_app_decision,
+                    eta=45.0,  # 45s transit time between interconnected sectors
+                    vehicle_type=EmergencyVehicleType.AMBULANCE,
+                    pre_informed=True,
+                    timestamp=time.time(),
+                    tracking_metadata={"pre_informed_by": junction_id, "corridor_handoff": True}
+                )
+            )
+            logger.info(f"[GreenWave] Pre-clearing downstream interconnected junction {downstream_junction} ({downstream_app_decision.value}) for incoming ambulance from {junction_id}.")
+
+
 # Singleton orchestrator instance for service registry
 emergency_orchestrator = EmergencyOrchestrator()

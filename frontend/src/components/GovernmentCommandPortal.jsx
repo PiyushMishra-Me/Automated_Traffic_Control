@@ -374,10 +374,10 @@ export default function GovernmentCommandPortal({
             </div>
 
             <div className="approaches-grid">
-              <ApproachFeedCard approachName="NORTH" state={currentJunctionState?.north} liveStream={liveStreams?.NORTH} />
-              <ApproachFeedCard approachName="SOUTH" state={currentJunctionState?.south} liveStream={liveStreams?.SOUTH} />
-              <ApproachFeedCard approachName="EAST" state={currentJunctionState?.east} liveStream={liveStreams?.EAST} />
-              <ApproachFeedCard approachName="WEST" state={currentJunctionState?.west} liveStream={liveStreams?.WEST} />
+              <ApproachFeedCard approachName="NORTH" state={currentJunctionState?.north} liveStream={liveStreams?.NORTH} junctionId={selectedJunction} />
+              <ApproachFeedCard approachName="SOUTH" state={currentJunctionState?.south} liveStream={liveStreams?.SOUTH} junctionId={selectedJunction} />
+              <ApproachFeedCard approachName="EAST" state={currentJunctionState?.east} liveStream={liveStreams?.EAST} junctionId={selectedJunction} />
+              <ApproachFeedCard approachName="WEST" state={currentJunctionState?.west} liveStream={liveStreams?.WEST} junctionId={selectedJunction} />
             </div>
           </section>
         </div>

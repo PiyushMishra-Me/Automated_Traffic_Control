@@ -1,10 +1,11 @@
 import os
+import time
 import uuid
 import threading
 from pathlib import Path
 from typing import Dict, List, Optional
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, BackgroundTasks, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
 from backend.config import settings
 from backend.models.traffic_schemas import (
     ApproachEnum,
@@ -14,6 +15,7 @@ from backend.models.traffic_schemas import (
     LiveStreamConfigRequest
 )
 from backend.core.vision.video_processor import VideoProcessor
+from backend.core.vision.live_stream_manager import live_stream_manager
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.db.repositories.junction_repo import junction_repo
 from backend.core.control.emergency_orchestrator import emergency_orchestrator
@@ -220,8 +222,8 @@ def get_job_status(job_id: str):
 @router.post("/live-stream", response_model=dict)
 def register_live_stream_feed(payload: LiveStreamConfigRequest):
     """
-    Register or update a live camera stream feed (RTSP, HLS, WebRTC, Device Webcam, or Simulation)
-    for a specific junction approach.
+    Register or update a live camera stream feed (RTSP, HTTP MJPEG, WebRTC, Device Webcam)
+    for a specific junction approach and launch real-time dual-model YOLO vision inference.
     """
     key = f"{payload.junction_id}_{payload.approach.value}"
     stream_doc = {
@@ -234,9 +236,23 @@ def register_live_stream_feed(payload: LiveStreamConfigRequest):
         "status": "CONNECTED" if payload.is_active else "PAUSED"
     }
     _live_streams[key] = stream_doc
+
+    if payload.is_active and payload.stream_url:
+        try:
+            live_stream_manager.start_stream(
+                junction_id=payload.junction_id,
+                approach=payload.approach,
+                stream_url=payload.stream_url,
+                sampling_fps=payload.sampling_fps or 6.0
+            )
+        except Exception as e:
+            print(f"[routes_video] Failed to start live inference worker: {e}")
+    else:
+        live_stream_manager.stop_stream(payload.junction_id, payload.approach)
+
     return {
         "status": "success",
-        "message": f"Live stream configured for {payload.junction_id} {payload.approach.value}",
+        "message": f"Live stream configured with real-time AI inference for {payload.junction_id} {payload.approach.value}",
         "config": stream_doc
     }
 
@@ -250,7 +266,6 @@ def get_junction_live_streams(junction_id: str):
         if key in _live_streams:
             results[app] = _live_streams[key]
         else:
-            # Default placeholder/simulation config
             results[app] = {
                 "junction_id": junction_id,
                 "approach": app,
@@ -265,10 +280,47 @@ def get_junction_live_streams(junction_id: str):
 @router.delete("/live-stream/{junction_id}/{approach}", response_model=dict)
 def delete_live_stream(junction_id: str, approach: ApproachEnum):
     key = f"{junction_id}_{approach.value}"
+    live_stream_manager.stop_stream(junction_id, approach)
     if key in _live_streams:
         del _live_streams[key]
         return {"status": "success", "message": f"Live stream removed for {approach.value}"}
     return {"status": "not_found", "message": "Stream was not registered"}
+
+
+@router.get("/live/{junction_id}/{approach}/annotated-stream")
+def stream_live_annotated_feed(junction_id: str, approach: ApproachEnum):
+    """
+    Stream real-time MJPEG video with live YOLO detection boxes, tracking IDs,
+    ambulance alerts, and traffic density overlays.
+    """
+    worker = live_stream_manager.get_worker(junction_id, approach)
+    if not worker or not worker.running:
+        key = f"{junction_id}_{approach.value}"
+        stream_doc = _live_streams.get(key)
+        if stream_doc and stream_doc.get("stream_url") and stream_doc.get("is_active"):
+            worker = live_stream_manager.start_stream(
+                junction_id=junction_id,
+                approach=approach,
+                stream_url=stream_doc["stream_url"],
+                sampling_fps=stream_doc.get("sampling_fps", 6.0)
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Live stream inference is not active for this approach")
+
+    def frame_generator():
+        while worker and worker.running:
+            frame_bytes = worker.get_latest_frame()
+            if frame_bytes:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+                )
+            time.sleep(0.08)
+
+    return StreamingResponse(
+        frame_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 @router.get("/annotated/{filename}")
