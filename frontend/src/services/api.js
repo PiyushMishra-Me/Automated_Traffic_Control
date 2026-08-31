@@ -41,13 +41,35 @@ export const api = {
     return res.json();
   },
 
-  async simulateSignal(junctionId, horizonSeconds = 180) {
+  async simulateSignal(junctionId, horizonSeconds = 180, forcedRedApproaches = []) {
     const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-simulation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_phase: 'ALL_RED', horizon_seconds: horizonSeconds }),
+      body: JSON.stringify({
+        current_phase: 'ALL_RED',
+        horizon_seconds: horizonSeconds,
+        forced_red_approaches: forcedRedApproaches
+      }),
     });
     if (!res.ok) throw new Error('Failed to run signal simulation');
+    return res.json();
+  },
+
+  async simulateCorridor({ junctionIds = [], links = [], forcedRed = {}, horizonSeconds = 180 }) {
+    const res = await fetch(`${API_BASE}/junctions/corridor-simulation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        junction_ids: junctionIds,
+        links: links,
+        forced_red: forcedRed,
+        horizon_seconds: horizonSeconds,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to run corridor simulation' }));
+      throw new Error(err.detail || 'Failed to run corridor simulation');
+    }
     return res.json();
   },
 

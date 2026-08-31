@@ -17,7 +17,9 @@ import {
   Link as LinkIcon,
   Unlink,
   Wifi,
-  Film
+  Film,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -28,7 +30,13 @@ const APPROACH_CONFIG = [
   { key: 'WEST', name: 'West', icon: ArrowLeft, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
 ];
 
-export default function VideoUploader({ junctionId, onJobCompleted }) {
+export default function VideoUploader({ 
+  junctionId, 
+  junctions = [], 
+  onSelectJunction, 
+  onLaunchSimulation, 
+  onJobCompleted 
+}) {
   // Mode: 'UPLOAD' | 'LIVE_RTSP' | 'LIVE_CAMERA'
   const [ingestMode, setIngestMode] = useState('UPLOAD');
 
@@ -261,6 +269,25 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
             <span className="target-sub">Junction: <strong>{junctionId}</strong></span>
           </div>
         </div>
+
+        {/* CLEAN JUNCTION SELECTOR FOR UPLOADING */}
+        {junctions && junctions.length > 0 && onSelectJunction && (
+          <div className="ingest-junction-select-group">
+            <span className="select-lbl font-mono">Target Junction:</span>
+            <select
+              className="form-select compact-select"
+              value={junctionId}
+              onChange={(e) => onSelectJunction(e.target.value)}
+              title="Select which junction to upload videos for"
+            >
+              {junctions.map((j) => (
+                <option key={j.junction_id} value={j.junction_id}>
+                  {j.junction_id} — {j.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* MINIMAL SEGMENTED TABS */}
         <div className="modular-tab-bar">

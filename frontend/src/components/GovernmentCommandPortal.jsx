@@ -355,6 +355,8 @@ export default function GovernmentCommandPortal({
 
             <VideoUploader 
               junctionId={selectedJunction}
+              junctions={junctions}
+              onSelectJunction={onSelectJunction}
               onJobCompleted={onJobCompleted}
             />
 
@@ -388,6 +390,8 @@ export default function GovernmentCommandPortal({
         <div className="tab-view-container animate-fade-in">
           <SignalSimulator 
             junctionId={selectedJunction} 
+            junctions={junctions}
+            onSelectJunction={onSelectJunction}
             refreshKey={analyticsRefresh} 
           />
         </div>

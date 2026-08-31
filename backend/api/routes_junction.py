@@ -1,11 +1,21 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
-from backend.models.traffic_schemas import CountingLinesUpdate, JunctionCreate, JunctionTrafficState, ApproachTrafficState, SignalRecommendation, SignalSimulationRequest, SignalSimulationResult
+from backend.models.traffic_schemas import (
+    CountingLinesUpdate,
+    JunctionCreate,
+    JunctionTrafficState,
+    ApproachTrafficState,
+    SignalRecommendation,
+    SignalSimulationRequest,
+    SignalSimulationResult,
+    CorridorSimulationRequest,
+    CorridorSimulationResult,
+)
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.core.analytics.junction_aggregator import JunctionAggregator
 from backend.core.control.adaptive_signal import AdaptiveSignalController
-from backend.core.control.signal_simulation import TrafficSimulator
+from backend.core.control.signal_simulation import TrafficSimulator, CorridorTrafficSimulator
 
 router = APIRouter(prefix="/api/junctions", tags=["Junctions"])
 
@@ -29,25 +39,14 @@ def update_counting_lines(junction_id: str, payload: CountingLinesUpdate):
     updated = junction_repo.update_counting_lines(junction_id, payload.custom_counting_lines)
     if not updated:
         raise HTTPException(status_code=404, detail="Junction not found")
-    return updated
+    return {"message": "Counting lines updated", "custom_counting_lines": payload.custom_counting_lines}
 
 @router.get("/{junction_id}/state", response_model=JunctionTrafficState)
-def get_junction_traffic_state(junction_id: str):
-    """
-    Returns the aggregated traffic state of the junction across all four approaches:
-    NORTH, SOUTH, EAST, WEST.
-    """
-    raw_states = traffic_repo.get_all_latest_for_junction(junction_id)
-    
-    # Parse into ApproachTrafficState objects
-    approach_states = {}
-    for app_name, data in raw_states.items():
-        try:
-            approach_states[app_name] = ApproachTrafficState(**data)
-        except Exception:
-            pass
-
-    return JunctionAggregator.aggregate(junction_id, approach_states)
+def get_junction_state(junction_id: str):
+    j = junction_repo.get_junction(junction_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="Junction not found")
+    return _current_junction_state(junction_id)
 
 def _current_junction_state(junction_id: str) -> JunctionTrafficState:
     raw_states = traffic_repo.get_all_latest_for_junction(junction_id)
@@ -70,5 +69,34 @@ def simulate_signal_recommendation(junction_id: str, payload: SignalSimulationRe
     if not junction_repo.get_junction(junction_id):
         raise HTTPException(status_code=404, detail="Junction not found")
     # Runs a deterministic, time-stepped simulation of the junction over the
-    # requested horizon. No hardware state is changed; this is analysis only.
-    return TrafficSimulator.run(_current_junction_state(junction_id), horizon=payload.horizon_seconds)
+    # requested horizon, enforcing any directional manual RED overrides.
+    forced_apps = [a.value for a in payload.forced_red_approaches] if payload.forced_red_approaches else None
+    return TrafficSimulator.run(
+        _current_junction_state(junction_id),
+        horizon=payload.horizon_seconds,
+        forced_red_approaches=forced_apps,
+    )
+
+@router.post("/corridor-simulation", response_model=CorridorSimulationResult)
+def simulate_corridor_recommendation(payload: CorridorSimulationRequest):
+    if not payload.junction_ids:
+        raise HTTPException(status_code=400, detail="Must specify at least one junction ID")
+    
+    # Build states for all requested junctions
+    junction_states = {}
+    for j_id in payload.junction_ids:
+        if not junction_repo.get_junction(j_id):
+            raise HTTPException(status_code=404, detail=f"Junction {j_id} not found")
+        junction_states[j_id] = _current_junction_state(j_id)
+    
+    forced_red_dict = {}
+    for j_id, apps in payload.forced_red.items():
+        forced_red_dict[j_id] = [a.value if hasattr(a, 'value') else str(a) for a in apps]
+
+    return CorridorTrafficSimulator.run_corridor(
+        junction_states=junction_states,
+        junction_ids=payload.junction_ids,
+        links=payload.links if payload.links else None,
+        forced_red=forced_red_dict,
+        horizon=payload.horizon_seconds,
+    )

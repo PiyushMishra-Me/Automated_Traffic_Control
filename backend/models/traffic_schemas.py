@@ -262,7 +262,33 @@ class SignalRecommendation(BaseModel):
 
 class SignalSimulationRequest(BaseModel):
     current_phase: SignalPhaseEnum = SignalPhaseEnum.ALL_RED
+    forced_red_approaches: List[ApproachEnum] = Field(
+        default_factory=list,
+        description="Approaches manually held at RED light"
+    )
+    horizon_seconds: int = Field(
+        180,
+        ge=30,
+        le=600,
+    )
 
+
+class CorridorLink(BaseModel):
+    upstream_junction_id: str
+    upstream_approach: ApproachEnum
+    downstream_junction_id: str
+    downstream_approach: ApproachEnum
+    distance_km: float = 2.5
+    transit_time_seconds: int = 8  # Compressed transit progression for live visual simulation
+
+
+class CorridorSimulationRequest(BaseModel):
+    junction_ids: List[str]
+    links: List[CorridorLink] = Field(default_factory=list)
+    forced_red: Dict[str, List[ApproachEnum]] = Field(
+        default_factory=dict,
+        description="Per-junction list of approaches forced to RED"
+    )
     horizon_seconds: int = Field(
         180,
         ge=30,
@@ -349,6 +375,46 @@ class SignalSimulationResult(BaseModel):
 
     is_simulation: bool = True
 
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
+
+class CorridorJunctionStep(BaseModel):
+    junction_id: str
+    phase: SignalPhaseEnum
+    phase_label: str
+    phase_time_remaining: int
+    lights: Dict[str, str]
+    queues: Dict[str, int]
+    served_total: int
+
+
+class CorridorTransitPlatoon(BaseModel):
+    link_id: str
+    upstream_junction_id: str
+    downstream_junction_id: str
+    vehicles_in_transit: int
+    progress_pct: float
+
+
+class CorridorSimulationStep(BaseModel):
+    t: int
+    junctions: Dict[str, CorridorJunctionStep]
+    transit: List[CorridorTransitPlatoon] = Field(default_factory=list)
+    corridor_served_total: int = 0
+
+
+class CorridorSimulationResult(BaseModel):
+    junction_ids: List[str]
+    links: List[CorridorLink]
+    total_seconds: int
+    steps: List[CorridorSimulationStep] = Field(default_factory=list)
+    junction_results: Dict[str, SignalSimulationResult] = Field(default_factory=dict)
+    corridor_comparison: SimulationComparison = Field(default_factory=SimulationComparison)
+    corridor_handoff_count: int = 0
+    rationale: str = ""
+    is_simulation: bool = True
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
