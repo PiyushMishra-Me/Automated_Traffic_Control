@@ -3748,11 +3748,47 @@ button,input,select { font:inherit; } button { cursor:pointer; } .app-container 
   white-space: nowrap;
 }
 
+.clean-stream-pill.idle {
+  color: #64748b;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .green-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: #16a34a;
+}
+
+.gray-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.rtsp-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.rtsp-actions-row .btn-card-action {
+  flex: 1;
+}
+
+.btn-card-action.btn-disconnect {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-card-action.btn-disconnect:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
 }
 
 .compact-input {

@@ -186,10 +186,24 @@ export default function LiveJunctionMap({
     }
 
     // 2. Draw Active Public Navigation Shortest Path Route
-    if (navigationRoute && navigationRoute.steps && routeGroupRef.current) {
+    if (navigationRoute && routeGroupRef.current) {
+      let jIds = [];
+      if (Array.isArray(navigationRoute)) {
+        jIds = navigationRoute;
+      } else if (Array.isArray(navigationRoute.optimal_route_junctions)) {
+        jIds = navigationRoute.optimal_route_junctions;
+      } else if (Array.isArray(navigationRoute.steps)) {
+        const collected = [];
+        navigationRoute.steps.forEach(step => {
+          if (step.from_junction_id && !collected.includes(step.from_junction_id)) collected.push(step.from_junction_id);
+          if (step.to_junction_id && !collected.includes(step.to_junction_id)) collected.push(step.to_junction_id);
+        });
+        jIds = collected;
+      }
+
       const routeCoords = [];
-      navigationRoute.steps.forEach(step => {
-        const jNode = jMap.get(step.junction_id);
+      jIds.forEach(id => {
+        const jNode = jMap.get(id);
         if (jNode && jNode.latitude && jNode.longitude) {
           routeCoords.push([jNode.latitude, jNode.longitude]);
         }
@@ -198,9 +212,9 @@ export default function LiveJunctionMap({
       if (routeCoords.length >= 2) {
         // Glowing background line
         const glowLine = L.polyline(routeCoords, {
-          color: '#06b6d4',
-          weight: 9,
-          opacity: 0.4
+          color: '#38bdf8',
+          weight: 10,
+          opacity: 0.5
         });
         routeGroupRef.current.addLayer(glowLine);
 
@@ -210,11 +224,15 @@ export default function LiveJunctionMap({
           weight: 5,
           opacity: 0.95
         });
+        const transitMin = navigationRoute.estimated_travel_time_formatted || 
+          (navigationRoute.total_travel_time_seconds ? `${Math.round(navigationRoute.total_travel_time_seconds / 60)} mins` : 'Optimal');
+        const distKm = navigationRoute.total_distance_km ? `${navigationRoute.total_distance_km} km` : '';
+
         activeRouteLine.bindPopup(`
           <div style="font-family: system-ui; padding: 4px;">
             <div style="font-weight: 700; color: #0284c7; margin-bottom: 4px;">⚡ Optimal Navigation Path</div>
-            <div>Estimated Transit: <b>${Math.round((navigationRoute.total_travel_time_seconds || 180) / 60)} mins</b></div>
-            <div>Distance: <b>${navigationRoute.total_distance_km || 4.2} km</b></div>
+            <div>Estimated Transit: <b>${transitMin}</b></div>
+            ${distKm ? `<div>Distance: <b>${distKm}</b></div>` : ''}
             <div style="color: #10b981; font-size: 11px; margin-top: 4px;">✓ Real-time traffic & weather optimized</div>
           </div>
         `);

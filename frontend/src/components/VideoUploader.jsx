@@ -15,6 +15,7 @@ import {
   ArrowRight, 
   ArrowLeft,
   Link as LinkIcon,
+  Unlink,
   Wifi,
   Film
 } from 'lucide-react';
@@ -39,6 +40,7 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
     EAST: 'rtsp://192.168.1.103:554/live/east',
     WEST: 'rtsp://192.168.1.104:554/live/west',
   });
+  const [connectedStreams, setConnectedStreams] = useState({});
 
   // Active Job states
   const [jobs, setJobs] = useState({ NORTH: null, SOUTH: null, EAST: null, WEST: null });
@@ -51,6 +53,34 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
   const [webcamActive, setWebcamActive] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+
+  // Sync existing live streams for the junction
+  const refreshLiveStreams = async () => {
+    if (!junctionId) return;
+    try {
+      const streams = await api.getJunctionLiveStreams(junctionId);
+      if (streams) {
+        const connectedMap = {};
+        const urlMap = { ...streamUrls };
+        Object.entries(streams).forEach(([app, conf]) => {
+          if (conf && conf.is_active && (conf.status === 'CONNECTED' || conf.stream_url)) {
+            connectedMap[app] = true;
+          }
+          if (conf && conf.stream_url && !conf.stream_url.startsWith('local://')) {
+            urlMap[app] = conf.stream_url;
+          }
+        });
+        setConnectedStreams(connectedMap);
+        setStreamUrls(prev => ({ ...prev, ...urlMap }));
+      }
+    } catch (e) {
+      console.warn('Failed to sync live streams', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshLiveStreams();
+  }, [junctionId, ingestMode]);
 
   // Poll for active jobs
   useEffect(() => {
@@ -147,6 +177,10 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
   // Connect / Save Live Stream URL
   const handleSaveLiveStream = async (approach) => {
     const url = streamUrls[approach];
+    if (!url) {
+      setError(`Enter a valid stream URL for ${approach} approach.`);
+      return;
+    }
     try {
       await api.registerLiveStream({
         junction_id: junctionId,
@@ -155,11 +189,25 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
         stream_url: url,
         is_active: true
       });
+      setConnectedStreams(prev => ({ ...prev, [approach]: true }));
       setSuccessBanner(`Live stream connected for ${approach} Approach.`);
       setTimeout(() => setSuccessBanner(null), 3000);
       if (onJobCompleted) onJobCompleted();
     } catch (err) {
       setError(err.message || 'Failed to connect stream');
+    }
+  };
+
+  // Disconnect Live Stream
+  const handleDisconnectLiveStream = async (approach) => {
+    try {
+      await api.deleteLiveStream(junctionId, approach);
+      setConnectedStreams(prev => ({ ...prev, [approach]: false }));
+      setSuccessBanner(`Live stream disconnected for ${approach} Approach.`);
+      setTimeout(() => setSuccessBanner(null), 3000);
+      if (onJobCompleted) onJobCompleted();
+    } catch (err) {
+      setError(err.message || 'Failed to disconnect stream');
     }
   };
 
@@ -365,40 +413,62 @@ export default function VideoUploader({ junctionId, onJobCompleted }) {
       {ingestMode === 'LIVE_RTSP' && (
         <div className="modular-rtsp-layout">
           <div className="modular-cards-grid">
-            {APPROACH_CONFIG.map(({ key, name, icon: Icon, color, bg, border }) => (
-              <div 
-                key={key} 
-                className="modular-approach-card"
-                style={{ background: bg, borderColor: border }}
-              >
-                <div className="card-top-row">
-                  <span className="approach-lbl" style={{ color }}>
-                    <Icon size={14} /> {name} RTSP
-                  </span>
-                  <span className="clean-stream-pill">
-                    <span className="green-dot" /> RTSP
-                  </span>
-                </div>
+            {APPROACH_CONFIG.map(({ key, name, icon: Icon, color, bg, border }) => {
+              const isConnected = Boolean(connectedStreams[key]);
 
-                <div className="rtsp-input-slot">
-                  <input 
-                    type="text" 
-                    className="compact-input font-mono"
-                    value={streamUrls[key]}
-                    onChange={(e) => setStreamUrls(prev => ({ ...prev, [key]: e.target.value }))}
-                    placeholder="rtsp://ip:port/live"
-                  />
-                </div>
-
-                <button 
-                  type="button"
-                  className="btn-card-action"
-                  onClick={() => handleSaveLiveStream(key)}
+              return (
+                <div 
+                  key={key} 
+                  className="modular-approach-card"
+                  style={{ background: bg, borderColor: border }}
                 >
-                  <LinkIcon size={12} /> Connect Stream
-                </button>
-              </div>
-            ))}
+                  <div className="card-top-row">
+                    <span className="approach-lbl" style={{ color }}>
+                      <Icon size={14} /> {name} RTSP
+                    </span>
+                    {isConnected ? (
+                      <span className="clean-stream-pill live">
+                        <span className="green-dot animate-pulse" /> Live
+                      </span>
+                    ) : (
+                      <span className="clean-stream-pill idle">
+                        <span className="gray-dot" /> Standby
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="rtsp-input-slot">
+                    <input 
+                      type="text" 
+                      className="compact-input font-mono"
+                      value={streamUrls[key]}
+                      onChange={(e) => setStreamUrls(prev => ({ ...prev, [key]: e.target.value }))}
+                      placeholder="rtsp://ip:port/live"
+                    />
+                  </div>
+
+                  <div className="rtsp-actions-row">
+                    <button 
+                      type="button"
+                      className="btn-card-action"
+                      onClick={() => handleSaveLiveStream(key)}
+                    >
+                      <LinkIcon size={12} /> {isConnected ? 'Update' : 'Connect'}
+                    </button>
+                    {isConnected && (
+                      <button 
+                        type="button"
+                        className="btn-card-action btn-disconnect"
+                        onClick={() => handleDisconnectLiveStream(key)}
+                        title={`Disconnect ${name} RTSP feed`}
+                      >
+                        <Unlink size={12} /> Disconnect
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

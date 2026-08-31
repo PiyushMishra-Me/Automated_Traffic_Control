@@ -347,7 +347,7 @@ export default function PublicCitizenPortal({
           onSelectJunction={onSelectJunction}
           incidents={incidents}
           weatherData={weatherData}
-          navigationRoute={navResult ? navResult.optimal_route_junctions : null}
+          navigationRoute={navResult}
           onOpenReportModal={onOpenReportModal}
           selectedCity={selectedCity}
           onSelectCity={handleCityChange}
