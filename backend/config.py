@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     # Models
     # =====================================================
 
-    # Main YOLO model for normal vehicles
-    MODEL_PATH: str = "yolov8s.pt"
+    # Main YOLO model for normal vehicles (YOLO11)
+    MODEL_PATH: str = "yolo11s.pt"
 
     # Custom ambulance detection model
     AMBULANCE_MODEL_PATH: str = str(

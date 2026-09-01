@@ -44,7 +44,7 @@ class LiveStreamWorker:
         self.latest_state: Optional[ApproachTrafficState] = None
         self.lock = threading.Lock()
         
-        # Dual-Model Tracker (Normal YOLOv8 + Custom Ambulance model)
+        # Dual-Model Tracker (Normal YOLO11 + Custom Ambulance model)
         self.tracker = VehicleTracker()
         self.processor = VideoProcessor(tracker=self.tracker)
         self.metrics_calculator = TrafficMetricsCalculator(self.approach, None)

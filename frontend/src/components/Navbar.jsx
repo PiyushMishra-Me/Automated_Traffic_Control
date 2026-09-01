@@ -13,7 +13,7 @@ export default function Navbar({ activeIncidentCount = 0, onOpenReportModal }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         <span className="header-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Cpu size={14} /> YOLOv8 + ByteTrack
+          <Cpu size={14} /> YOLO11 + ByteTrack
         </span>
         <span className="header-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#06b6d4' }}>
           <Map size={14} /> Live City Grid

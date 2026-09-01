@@ -125,7 +125,7 @@ export default function PortalLandingPage({ onSelectPortal }) {
             <h3>Traffic Police &amp; Operations Command</h3>
             <p>
               Master administrative command center with unrestricted control over 
-              <strong> 4-approach YOLOv8 vision feeds</strong>, adaptive signal timing algorithms, 
+              <strong> 4-approach YOLO11 vision feeds</strong>, adaptive signal timing algorithms, 
               automated accident detours, and longitudinal audit telemetry.
             </p>
 

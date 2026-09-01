@@ -1,6 +1,6 @@
 # Automated Traffic Control & Intelligent Road Safety System
 
-An end-to-end intelligent traffic control and safety automation platform featuring **Dual-Model Real-Time Vision AI** (YOLOv8 + Custom Ambulance Detector), **Continuous CCTV / RTSP Stream Analytics**, **Interactive Real-World Geospatial Map (Leaflet / OpenStreetMap)** across major metropolitan cities, **Dynamic Shortest Path Citizen Navigation**, **Open-Meteo Weather-Adaptive Signal Timing**, **Automated Upstream Accident Diversion**, and **Multi-Junction Green Wave Emergency Preemption**.
+An end-to-end intelligent traffic control and safety automation platform featuring **Dual-Model Real-Time Vision AI** (YOLO11 / YOLOv8 + Custom Ambulance Detector), **Continuous CCTV / RTSP Stream Analytics**, **Interactive Real-World Geospatial Map (Leaflet / OpenStreetMap)** across major metropolitan cities, **Dynamic Shortest Path Citizen Navigation**, **Open-Meteo Weather-Adaptive Signal Timing**, **Automated Upstream Accident Diversion**, and **Multi-Junction Green Wave Emergency Preemption**.
 
 ---
 
@@ -8,7 +8,7 @@ An end-to-end intelligent traffic control and safety automation platform featuri
 
 ### 1. Dual-Model Real-Time AI Vision & Live Stream Ingestion
 - **Dual-Model Inference Pipeline**:
-  - **YOLOv8** for standard multi-class vehicle detection (`car`, `motorcycle`, `bus`, `truck`).
+  - **YOLO11** for standard multi-class vehicle detection (`car`, `motorcycle`, `bus`, `truck`).
   - **Custom Ambulance Neural Network** trained for high-confidence emergency vehicle detection with temporal confirmation.
 - **Continuous Live CCTV / RTSP Stream Ingestion**:
   - `LiveStreamWorker` background threads consume live RTSP feeds, IP webcams (e.g. Android IP Webcam), HTTP MJPEG, and device webcams.

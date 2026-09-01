@@ -122,7 +122,7 @@ export default function GovernmentCommandPortal({
           <h2>Metropolitan Traffic Operating Command System</h2>
           <p>
             Full administrative access for <strong>{userSession?.organization_name || 'Traffic Police Operations'}</strong>. 
-            Supervise city-wide YOLOv8n vision telemetry, execute manual signal overrides, manage upstream accident detours, 
+            Supervise city-wide YOLO11 vision telemetry, execute manual signal overrides, manage upstream accident detours, 
             and supervise multi-agency emergency Green Waves.
           </p>
         </div>
@@ -372,7 +372,7 @@ export default function GovernmentCommandPortal({
                 <span className="eyebrow">Vision AI Workspace</span>
                 <h2>4-Approach Camera Feeds &amp; Detection Overlay ({selectedJunction})</h2>
               </div>
-              <p>YOLOv8n neural detection, ByteTrack tracking IDs, and directional analytics.</p>
+              <p>YOLO11 neural detection, ByteTrack tracking IDs, and directional analytics.</p>
             </div>
 
             <div className="approaches-grid">
