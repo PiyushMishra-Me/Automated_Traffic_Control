@@ -605,7 +605,7 @@ pytest backend/tests -v
 
 ## 👤 Author & License
 
-**Piyush Mishra**  
+**Aditya,Anurag Singh,Amit Yadav,Piyush Mishra,Yashvi Singla,Prince Kumar**  
 *Computer Vision • Intelligent Transportation Systems • Full-Stack Development*  
 GitHub: [@PiyushMishra-Me](https://github.com/PiyushMishra-Me)  
 Repository: [Automated_Traffic_Control](https://github.com/PiyushMishra-Me/Automated_Traffic_Control)
