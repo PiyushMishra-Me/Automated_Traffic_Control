@@ -607,7 +607,19 @@ pytest backend/tests -v
 
 **Aditya,Anurag Singh,Amit Yadav,Piyush Mishra,Yashvi Singla,Prince Kumar**  
 *Computer Vision • Intelligent Transportation Systems • Full-Stack Development*  
-GitHub: [@PiyushMishra-Me](https://github.com/PiyushMishra-Me)  
+GitHub: 
+[@amityadav13a-prog](https://github.com/amityadav13a-prog)
+
+[@Anurag977](https://github.com/Anurag977)
+
+[@aditya-dhiman-07](https://github.com/aditya-dhiman-07)
+
+[@PiyushMishra-Me](https://github.com/PiyushMishra-Me) 
+
+[@yashvisingla](https://github.com/yashvisingla)
+
+[@prince3210](https://github.com/prince3210)
+
 Repository: [Automated_Traffic_Control](https://github.com/PiyushMishra-Me/Automated_Traffic_Control)
 
 ---
