@@ -139,3 +139,4 @@ npm run dev
 # Run backend test suite (49 test suites)
 $env:PYTHONPATH='.'; pytest backend/tests -v
 ```
+
