@@ -72,3 +72,53 @@ def test_incident_reporting_and_diversion_lifecycle():
     res_resolve = client.patch(f"/api/incidents/{inc_id}/status", json={"status": "RESOLVED"})
     assert res_resolve.status_code == 200
     assert res_resolve.json()["status"] == "RESOLVED"
+
+def test_traffic_police_base_dispatch_reporting_without_camera():
+    """Traffic police at base receiving a call can report an accident towards a junction without live camera photo."""
+    police_payload = {
+        "junction_id": "J-02",
+        "approach": "SOUTH",
+        "road_name": "South Expressway",
+        "incident_type": "ACCIDENT",
+        "severity": "SEVERE",
+        "description": "Base received PCR emergency call reporting multiple car pileup.",
+        "estimated_clearance_minutes": 35,
+        "reported_by": "Traffic Police Control Base Room",
+        "reporter_role": "TRAFFIC_POLICE",
+        "dispatch_call_ref": "POL-CALL-8842",
+        "photo_base64": None,
+        "is_live_captured": False
+    }
+    res = client.post("/api/incidents", json=police_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["reporter_role"] == "TRAFFIC_POLICE"
+    assert data["dispatch_call_ref"] == "POL-CALL-8842"
+    assert data["photo_base64"] is None
+    assert data["is_live_captured"] is False
+    assert data["status"] == "ACTIVE"
+    assert data["diversion_plan"] is not None
+    assert data["diversion_plan"]["active"] is True
+
+def test_public_citizen_reporting_with_live_camera():
+    """Public citizen on-scene reporting requires live captured photo evidence."""
+    public_payload = {
+        "junction_id": "J-03",
+        "approach": "EAST",
+        "road_name": "East Ring Road",
+        "incident_type": "ROAD_HAZARD",
+        "severity": "MODERATE",
+        "description": "Fallen tree blocking eastbound lane, snapped live on camera.",
+        "estimated_clearance_minutes": 20,
+        "reported_by": "Citizen Commuter",
+        "reporter_role": "PUBLIC_CITIZEN",
+        "photo_base64": "data:image/jpeg;base64,samplephotoevidence123",
+        "is_live_captured": True
+    }
+    res = client.post("/api/incidents", json=public_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["reporter_role"] == "PUBLIC_CITIZEN"
+    assert data["photo_base64"] == "data:image/jpeg;base64,samplephotoevidence123"
+    assert data["is_live_captured"] is True
+    assert data["diversion_plan"] is not None

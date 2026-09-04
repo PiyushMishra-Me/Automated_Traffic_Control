@@ -48,10 +48,12 @@ class IncidentCreate(BaseModel):
     description: str
     estimated_clearance_minutes: int = 30
     reported_by: Optional[str] = "Traffic Operations Center"
+    reporter_role: Optional[str] = Field("TRAFFIC_POLICE", description="Role of reporter: TRAFFIC_POLICE, PUBLIC_CITIZEN, etc.")
+    dispatch_call_ref: Optional[str] = Field(None, description="Official call log or dispatch reference for base reports")
     lat: Optional[float] = None
     lng: Optional[float] = None
     photo_base64: Optional[str] = Field(None, description="On-the-spot camera captured live photo base64 data URI")
-    is_live_captured: bool = Field(True, description="Strict enforcement: photo was captured live from camera viewfinder")
+    is_live_captured: bool = Field(False, description="Strict enforcement: photo was captured live from camera viewfinder")
     capture_timestamp: Optional[str] = None
 
 class IncidentStatusUpdate(BaseModel):
@@ -68,10 +70,12 @@ class IncidentResponse(BaseModel):
     description: str
     estimated_clearance_minutes: int
     reported_by: str
+    reporter_role: Optional[str] = "TRAFFIC_POLICE"
+    dispatch_call_ref: Optional[str] = None
     lat: float
     lng: float
     photo_base64: Optional[str] = None
-    is_live_captured: bool = True
+    is_live_captured: bool = False
     capture_timestamp: Optional[str] = None
     diversion_plan: Optional[DiversionPlan] = None
     reported_at: datetime

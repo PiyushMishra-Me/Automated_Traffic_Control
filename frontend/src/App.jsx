@@ -24,7 +24,19 @@ export default function App() {
   const [activeAmbulances, setActiveAmbulances] = useState([]);
   const [weatherData, setWeatherData] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportModalMode, setReportModalMode] = useState('PUBLIC');
   const [analyticsRefresh, setAnalyticsRefresh] = useState(0);
+  const [visitedRoles, setVisitedRoles] = useState(new Set(['PUBLIC_USER']));
+
+  useEffect(() => {
+    if (currentRole && currentRole !== 'GATEWAY') {
+      setVisitedRoles(prev => new Set(prev).add(currentRole));
+    }
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [currentRole]);
 
   const activeIncidentCount = incidents.filter(i => i.status === 'ACTIVE').length;
 
@@ -128,13 +140,17 @@ export default function App() {
   const handleLogout = () => {
     setUserSession(null);
     setCurrentRole('GATEWAY');
+    setVisitedRoles(new Set());
   };
 
   return (
     <div className="app-container">
       <Navbar 
         activeIncidentCount={activeIncidentCount} 
-        onOpenReportModal={() => setIsReportModalOpen(true)} 
+        onOpenReportModal={() => {
+          setReportModalMode(currentRole === 'GOVERNMENT_OFFICIAL' ? 'POLICE' : 'PUBLIC');
+          setIsReportModalOpen(true);
+        }} 
       />
 
       {/* RENDER VIEW 0: FRONT LANDING PORTAL GATEWAY */}
@@ -155,62 +171,77 @@ export default function App() {
           />
 
           {/* VIEW 1: PUBLIC CITIZEN PORTAL */}
-          {currentRole === 'PUBLIC_USER' && (
-            <PublicCitizenPortal 
-              junctions={junctions}
-              selectedJunction={selectedJunction}
-              onSelectJunction={setSelectedJunction}
-              incidents={incidents}
-              weatherData={weatherData}
-              onOpenReportModal={() => setIsReportModalOpen(true)}
-              onWeatherUpdated={(updated) => {
-                setWeatherData(updated);
-                handleRefreshAll();
-              }}
-            />
+          {visitedRoles.has('PUBLIC_USER') && (
+            <div style={{ display: currentRole === 'PUBLIC_USER' ? 'block' : 'none' }}>
+              <PublicCitizenPortal 
+                junctions={junctions}
+                selectedJunction={selectedJunction}
+                onSelectJunction={setSelectedJunction}
+                incidents={incidents}
+                weatherData={weatherData}
+                onOpenReportModal={() => {
+                  setReportModalMode('PUBLIC');
+                  setIsReportModalOpen(true);
+                }}
+                onWeatherUpdated={(updated) => {
+                  setWeatherData(updated);
+                  handleRefreshAll();
+                }}
+              />
+            </div>
           )}
 
           {/* VIEW 2: EMERGENCY SERVICES PORTAL */}
-          {currentRole === 'HOSPITAL_DISPATCH' && (
-            <HospitalEmergencyPortal 
-              userSession={userSession}
-              onMissionUpdated={() => {
-                fetchAmbulances();
-                fetchJunctionState(selectedJunction);
-              }}
-            />
+          {visitedRoles.has('HOSPITAL_DISPATCH') && (
+            <div style={{ display: currentRole === 'HOSPITAL_DISPATCH' ? 'block' : 'none' }}>
+              <HospitalEmergencyPortal 
+                userSession={userSession}
+                onMissionUpdated={() => {
+                  fetchAmbulances();
+                  fetchJunctionState(selectedJunction);
+                }}
+              />
+            </div>
           )}
 
           {/* VIEW 3: GOVERNMENT & POLICE COMMAND CENTER */}
-          {currentRole === 'GOVERNMENT_OFFICIAL' && (
-            <GovernmentCommandPortal 
-              junctions={junctions}
-              selectedJunction={selectedJunction}
-              onSelectJunction={setSelectedJunction}
-              userSession={userSession}
-              onOpenReportModal={() => setIsReportModalOpen(true)}
-              weatherData={weatherData}
-              onWeatherUpdated={(updated) => {
-                setWeatherData(updated);
-                handleRefreshAll();
-              }}
-              analyticsRefresh={analyticsRefresh}
-              onRefreshAll={handleRefreshAll}
-              onJobCompleted={() => {
-                fetchJunctionState(selectedJunction);
-                setAnalyticsRefresh(c => c + 1);
-              }}
-            />
+          {visitedRoles.has('GOVERNMENT_OFFICIAL') && (
+            <div style={{ display: currentRole === 'GOVERNMENT_OFFICIAL' ? 'block' : 'none' }}>
+              <GovernmentCommandPortal 
+                junctions={junctions}
+                selectedJunction={selectedJunction}
+                onSelectJunction={setSelectedJunction}
+                userSession={userSession}
+                onOpenReportModal={() => {
+                  setReportModalMode('POLICE');
+                  setIsReportModalOpen(true);
+                }}
+                weatherData={weatherData}
+                onWeatherUpdated={(updated) => {
+                  setWeatherData(updated);
+                  handleRefreshAll();
+                }}
+                analyticsRefresh={analyticsRefresh}
+                onRefreshAll={handleRefreshAll}
+                onJobCompleted={() => {
+                  fetchJunctionState(selectedJunction);
+                  setAnalyticsRefresh(c => c + 1);
+                }}
+              />
+            </div>
           )}
         </>
       )}
 
-      {/* MANDATORY LIVE ON-THE-SPOT CAMERA CAPTURE MODAL */}
+      {/* INCIDENT REPORTING MODAL: POLICE BASE DISPATCH & CITIZEN REPORT */}
       <IncidentReportingModal 
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         junctions={junctions}
         currentJunction={selectedJunction}
+        mode={reportModalMode}
+        userRole={currentRole}
+        userSession={userSession}
         onIncidentReported={() => {
           fetchIncidents();
           fetchJunctionState(selectedJunction);

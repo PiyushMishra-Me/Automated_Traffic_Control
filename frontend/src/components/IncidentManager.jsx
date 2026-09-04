@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Plus,
   Radio,
-  Zap
+  Zap,
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 import { api } from '../services/api';
 import ManualSignalModal from './ManualSignalModal';
@@ -237,13 +239,32 @@ export default function IncidentManager({
                       </div>
                     </div>
 
-                    {inc.photo_base64 && (
+                    {inc.photo_base64 ? (
                       <div className="incident-photo-evidence-container">
                         <div className="evidence-header">
                           <span className="badge-verified-onscene">📸 Verified On-Scene Live Capture</span>
                           <span className="evidence-time">{inc.capture_timestamp ? new Date(inc.capture_timestamp).toLocaleString() : ''}</span>
                         </div>
                         <img src={inc.photo_base64} alt="Live Incident Evidence" className="incident-evidence-photo" />
+                      </div>
+                    ) : (
+                      <div className="incident-police-dispatch-record">
+                        <div className="police-record-header">
+                          <span className="badge-police-official-record">
+                            <ShieldCheck size={14} /> 🛡️ Official Traffic Police Base Dispatch
+                          </span>
+                          {inc.dispatch_call_ref && (
+                            <span className="badge-call-log font-mono">
+                              Log Ref: {inc.dispatch_call_ref}
+                            </span>
+                          )}
+                          <span className="evidence-time">
+                            {inc.reported_at ? new Date(inc.reported_at).toLocaleString() : ''}
+                          </span>
+                        </div>
+                        <p className="police-record-note">
+                          Logged directly from central traffic operations base upon receiving an emergency call. Upstream signal throttling and diversion routings activated without on-scene camera photo requirement.
+                        </p>
                       </div>
                     )}
 

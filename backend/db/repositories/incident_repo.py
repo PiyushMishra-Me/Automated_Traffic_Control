@@ -61,6 +61,8 @@ class IncidentRepository:
             "description": payload.description,
             "estimated_clearance_minutes": payload.estimated_clearance_minutes,
             "reported_by": payload.reported_by or "Traffic Operations Center",
+            "reporter_role": payload.reporter_role or "TRAFFIC_POLICE",
+            "dispatch_call_ref": payload.dispatch_call_ref,
             "lat": lat,
             "lng": lng,
             "photo_base64": payload.photo_base64,

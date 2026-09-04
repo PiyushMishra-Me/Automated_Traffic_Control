@@ -30,6 +30,35 @@ const APPROACH_CONFIG = [
   { key: 'WEST', name: 'West', icon: ArrowLeft, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
 ];
 
+// Module-level persistent cache across portal switches and tab switches
+const globalUploaderCache = {
+  filesByJunction: {},     // { [junctionId]: { NORTH: File, SOUTH: File, EAST: File, WEST: File } }
+  jobsByJunction: {},      // { [junctionId]: { NORTH: Job, SOUTH: Job, EAST: Job, WEST: Job } }
+  ingestModeByJunction: {},// { [junctionId]: 'UPLOAD' | 'LIVE_RTSP' | 'LIVE_CAMERA' }
+  streamUrls: {
+    NORTH: 'rtsp://192.168.1.101:554/live/north',
+    SOUTH: 'rtsp://192.168.1.102:554/live/south',
+    EAST: 'rtsp://192.168.1.103:554/live/east',
+    WEST: 'rtsp://192.168.1.104:554/live/west',
+  }
+};
+
+const getStoredFiles = (jId) => {
+  if (!jId) return { NORTH: null, SOUTH: null, EAST: null, WEST: null };
+  if (!globalUploaderCache.filesByJunction[jId]) {
+    globalUploaderCache.filesByJunction[jId] = { NORTH: null, SOUTH: null, EAST: null, WEST: null };
+  }
+  return globalUploaderCache.filesByJunction[jId];
+};
+
+const getStoredJobs = (jId) => {
+  if (!jId) return { NORTH: null, SOUTH: null, EAST: null, WEST: null };
+  if (!globalUploaderCache.jobsByJunction[jId]) {
+    globalUploaderCache.jobsByJunction[jId] = { NORTH: null, SOUTH: null, EAST: null, WEST: null };
+  }
+  return globalUploaderCache.jobsByJunction[jId];
+};
+
 export default function VideoUploader({ 
   junctionId, 
   junctions = [], 
@@ -38,23 +67,45 @@ export default function VideoUploader({
   onJobCompleted 
 }) {
   // Mode: 'UPLOAD' | 'LIVE_RTSP' | 'LIVE_CAMERA'
-  const [ingestMode, setIngestMode] = useState('UPLOAD');
+  const [ingestMode, setIngestMode] = useState(() => 
+    (junctionId && globalUploaderCache.ingestModeByJunction[junctionId]) || 'UPLOAD'
+  );
 
-  // Approach Files & URLs
-  const [files, setFiles] = useState({ NORTH: null, SOUTH: null, EAST: null, WEST: null });
-  const [streamUrls, setStreamUrls] = useState({
-    NORTH: 'rtsp://192.168.1.101:554/live/north',
-    SOUTH: 'rtsp://192.168.1.102:554/live/south',
-    EAST: 'rtsp://192.168.1.103:554/live/east',
-    WEST: 'rtsp://192.168.1.104:554/live/west',
-  });
+  // Approach Files & URLs - Persistent from cache
+  const [files, setFiles] = useState(() => ({ ...getStoredFiles(junctionId) }));
+  const [streamUrls, setStreamUrls] = useState({ ...globalUploaderCache.streamUrls });
   const [connectedStreams, setConnectedStreams] = useState({});
 
-  // Active Job states
-  const [jobs, setJobs] = useState({ NORTH: null, SOUTH: null, EAST: null, WEST: null });
+  // Active Job states - Persistent from cache
+  const [jobs, setJobs] = useState(() => ({ ...getStoredJobs(junctionId) }));
   const [globalLoading, setGlobalLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successBanner, setSuccessBanner] = useState(null);
+
+  // Sync state when junctionId changes
+  useEffect(() => {
+    if (junctionId) {
+      setFiles({ ...getStoredFiles(junctionId) });
+      setJobs({ ...getStoredJobs(junctionId) });
+      if (globalUploaderCache.ingestModeByJunction[junctionId]) {
+        setIngestMode(globalUploaderCache.ingestModeByJunction[junctionId]);
+      }
+    }
+  }, [junctionId]);
+
+  // Persist jobs to cache
+  useEffect(() => {
+    if (junctionId && jobs) {
+      globalUploaderCache.jobsByJunction[junctionId] = { ...jobs };
+    }
+  }, [junctionId, jobs]);
+
+  const changeIngestMode = (mode) => {
+    setIngestMode(mode);
+    if (junctionId) {
+      globalUploaderCache.ingestModeByJunction[junctionId] = mode;
+    }
+  };
 
   // Live Webcam state
   const [webcamApproach, setWebcamApproach] = useState('NORTH');
@@ -131,7 +182,16 @@ export default function VideoUploader({
 
   // Handle single file selection
   const handleFileChange = (approach, file) => {
-    setFiles(prev => ({ ...prev, [approach]: file }));
+    setFiles(prev => {
+      const updated = { ...prev, [approach]: file };
+      if (junctionId) {
+        if (!globalUploaderCache.filesByJunction[junctionId]) {
+          globalUploaderCache.filesByJunction[junctionId] = { NORTH: null, SOUTH: null, EAST: null, WEST: null };
+        }
+        globalUploaderCache.filesByJunction[junctionId][approach] = file;
+      }
+      return updated;
+    });
     setError(null);
   };
 
@@ -294,21 +354,21 @@ export default function VideoUploader({
           <button 
             type="button"
             className={`modular-tab ${ingestMode === 'UPLOAD' ? 'active' : ''}`}
-            onClick={() => setIngestMode('UPLOAD')}
+            onClick={() => changeIngestMode('UPLOAD')}
           >
             <Film size={13} /> 4-Way Ingest
           </button>
           <button 
             type="button"
             className={`modular-tab ${ingestMode === 'LIVE_RTSP' ? 'active' : ''}`}
-            onClick={() => setIngestMode('LIVE_RTSP')}
+            onClick={() => changeIngestMode('LIVE_RTSP')}
           >
             <Wifi size={13} /> RTSP / IP
           </button>
           <button 
             type="button"
             className={`modular-tab ${ingestMode === 'LIVE_CAMERA' ? 'active' : ''}`}
-            onClick={() => setIngestMode('LIVE_CAMERA')}
+            onClick={() => changeIngestMode('LIVE_CAMERA')}
           >
             <Camera size={13} /> Webcam
           </button>

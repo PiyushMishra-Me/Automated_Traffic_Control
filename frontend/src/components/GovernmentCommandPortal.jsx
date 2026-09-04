@@ -33,6 +33,9 @@ import AnalyticsHistory from './AnalyticsHistory';
 import WeatherWidget from './WeatherWidget';
 import { api } from '../services/api';
 
+// Remember active sub-tab across portal switches
+let cachedGovActiveTab = 'overview';
+
 export default function GovernmentCommandPortal({ 
   junctions = [], 
   selectedJunction, 
@@ -41,11 +44,15 @@ export default function GovernmentCommandPortal({
   onOpenReportModal,
   weatherData,
   onWeatherUpdated,
-  analyticsRefresh,
+  analyticsRefresh = 0,
   onRefreshAll,
   onJobCompleted
 }) {
-  const [govActiveTab, setGovActiveTab] = useState('overview'); // 'overview', 'map', 'vision', 'simulation', 'incidents', 'weather', 'analytics'
+  const [govActiveTab, setGovActiveTabState] = useState(() => cachedGovActiveTab || 'overview');
+  const setGovActiveTab = (tab) => {
+    cachedGovActiveTab = tab;
+    setGovActiveTabState(tab);
+  };
   const [junctionStates, setJunctionStates] = useState({});
   const [liveStreams, setLiveStreams] = useState({});
   const [activeAmbulances, setActiveAmbulances] = useState([]);
@@ -460,6 +467,8 @@ export default function GovernmentCommandPortal({
         <div className="tab-view-container animate-fade-in">
           <AnalyticsHistory 
             junctionId={selectedJunction} 
+            junctions={junctions}
+            onSelectJunction={onSelectJunction}
             refreshKey={analyticsRefresh} 
           />
         </div>
