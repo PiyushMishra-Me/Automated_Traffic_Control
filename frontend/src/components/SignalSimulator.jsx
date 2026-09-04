@@ -3,9 +3,10 @@ import {
   AlertTriangle, Car, Clock3, Gauge, Pause, Play, RadioTower,
   RotateCcw, ShieldCheck, TrendingDown, TrendingUp, Layers,
   Plus, Trash2, ArrowRight, ArrowUp, ArrowDown, ArrowLeft,
-  ShieldAlert, Zap, Compass, CheckCircle2, Sparkles, Grid
+  ShieldAlert, Zap, Compass, CheckCircle2, Sparkles, Grid, Radio
 } from 'lucide-react';
 import { api } from '../services/api';
+import ManualSignalModal from './ManualSignalModal';
 
 const APPROACHES = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
 const STEP_MS = 90; // wall-clock ms between animation frames
@@ -42,7 +43,8 @@ export default function SignalSimulator({
   junctionId, 
   junctions = [], 
   onSelectJunction, 
-  refreshKey 
+  refreshKey,
+  onRefresh
 }) {
   // Mode: 'SINGLE' | 'NETWORK_STAR'
   const [simMode, setSimMode] = useState('SINGLE');
@@ -64,6 +66,28 @@ export default function SignalSimulator({
   const [corridorForcedRed, setCorridorForcedRed] = useState({}); // { [jId]: ['EAST'] }
   const [corridorSim, setCorridorSim] = useState(null);
   const [viewLayout, setViewLayout] = useState('STAR'); // 'STAR' | 'GRID'
+
+  // Live Physical Police Override State
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
+  const [liveOverride, setLiveOverride] = useState(null);
+
+  const activeTargetJunctionId = simMode === 'SINGLE' ? (junctionId || 'J-01') : (centralJunctionId || 'J-01');
+
+  const fetchLiveOverride = async () => {
+    if (!activeTargetJunctionId) return;
+    try {
+      const data = await api.getManualSignalOverride(activeTargetJunctionId);
+      setLiveOverride(data && data.active ? data : null);
+    } catch (e) {
+      console.warn('Failed to fetch live manual signal override', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveOverride();
+    const interval = setInterval(fetchLiveOverride, 4000);
+    return () => clearInterval(interval);
+  }, [activeTargetJunctionId, refreshKey]);
 
   // Playback & Animation State
   const [stepIndex, setStepIndex] = useState(0);
@@ -120,6 +144,12 @@ export default function SignalSimulator({
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const handleOverrideApplied = () => {
+    fetchLiveOverride();
+    loadRecommendation();
+    if (onRefresh) onRefresh();
   };
 
   // Reset simulation when junction, refreshKey, or mode changes
@@ -411,22 +441,37 @@ export default function SignalSimulator({
           <span className="simulation-badge"><ShieldCheck size={13} /> Multi-Corridor Telemetry Sandbox</span>
         </div>
 
-        {/* MODE TOGGLE BUTTONS */}
-        <div className="sim-mode-switcher">
-          <button 
+        {/* RIGHT CONTROLS: LIVE SIGNAL OVERRIDE & MODE TOGGLE */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
             type="button"
-            className={`sim-mode-btn ${simMode === 'SINGLE' ? 'active' : ''}`}
-            onClick={() => setSimMode('SINGLE')}
+            className={`btn-override-signal ${liveOverride && liveOverride.active ? 'active' : ''}`}
+            onClick={() => setIsLiveModalOpen(true)}
+            title="Police Command: Manually change traffic light on live junction"
+            style={{ padding: '8px 14px', borderRadius: '10px' }}
           >
-            <Compass size={14} /> Single Intersection
+            <Radio size={14} className={liveOverride && liveOverride.active ? "animate-pulse" : ""} />
+            {liveOverride && liveOverride.active 
+              ? `🚨 Live Override: ${liveOverride.override_mode}` 
+              : `Change Live Signal Light (${activeTargetJunctionId})`}
           </button>
-          <button 
-            type="button"
-            className={`sim-mode-btn ${simMode === 'NETWORK_STAR' ? 'active' : ''}`}
-            onClick={() => setSimMode('NETWORK_STAR')}
-          >
-            <Layers size={14} /> 4-Way Multi-Junction Network ({allNetworkJunctionIds.length} Junctions)
-          </button>
+
+          <div className="sim-mode-switcher">
+            <button 
+              type="button"
+              className={`sim-mode-btn ${simMode === 'SINGLE' ? 'active' : ''}`}
+              onClick={() => setSimMode('SINGLE')}
+            >
+              <Compass size={14} /> Single Intersection
+            </button>
+            <button 
+              type="button"
+              className={`sim-mode-btn ${simMode === 'NETWORK_STAR' ? 'active' : ''}`}
+              onClick={() => setSimMode('NETWORK_STAR')}
+            >
+              <Layers size={14} /> 4-Way Multi-Junction Network ({allNetworkJunctionIds.length} Junctions)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -437,19 +482,51 @@ export default function SignalSimulator({
          ========================================================================= */}
       {simMode === 'SINGLE' && (
         <div className="manual-override-container">
+          {/* LIVE OVERRIDE ACTIVE BANNER */}
+          {liveOverride && liveOverride.active && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef4444', borderRadius: '8px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
+                <Radio size={16} className="text-red animate-pulse" />
+                <span>
+                  POLICE LIVE SIGNAL OVERRIDE ACTIVE: {liveOverride.reason} ({liveOverride.override_mode})
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn-override-signal active"
+                onClick={() => setIsLiveModalOpen(true)}
+                style={{ padding: '4px 10px', fontSize: '0.74rem' }}
+              >
+                Manage Live Override
+              </button>
+            </div>
+          )}
+
           <div className="manual-override-header">
             <div className="override-title">
               <ShieldAlert size={16} className={forcedRedApproaches.length > 0 ? "text-red animate-pulse" : "text-slate"} />
-              <strong>Manual Directional Red Light Overrides ({junctionId})</strong>
+              <strong>Simulation Red Light Sandbox Overrides ({junctionId})</strong>
             </div>
-            {forcedRedApproaches.length > 0 && (
-              <span className="override-active-pill">
-                ⚠️ {forcedRedApproaches.length} APPROACH{forcedRedApproaches.length > 1 ? 'ES' : ''} FORCED RED
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                className={`btn-override-signal ${liveOverride && liveOverride.active ? 'active' : ''}`}
+                onClick={() => setIsLiveModalOpen(true)}
+                style={{ fontSize: '0.74rem', padding: '5px 10px' }}
+                title="Open Live Physical Signal Override Modal"
+              >
+                <Radio size={13} className={liveOverride && liveOverride.active ? "animate-pulse" : ""} />
+                {liveOverride && liveOverride.active ? 'Active Police Override' : 'Police Live Light Control'}
+              </button>
+              {forcedRedApproaches.length > 0 && (
+                <span className="override-active-pill">
+                  ⚠️ {forcedRedApproaches.length} APPROACH{forcedRedApproaches.length > 1 ? 'ES' : ''} FORCED RED
+                </span>
+              )}
+            </div>
           </div>
           <p className="override-subtext">
-            Click any direction button below (or click a signal head on the map) to lock that approach to a permanent <strong>RED light</strong>. 
+            Click any direction button below (or click a signal head on the map) to lock that approach to a permanent <strong>RED light</strong> in the simulation sandbox. 
             Vehicles will accumulate in the queue without discharging, testing upstream bottleneck handling.
           </p>
 
@@ -484,6 +561,20 @@ export default function SignalSimulator({
               <AlertTriangle size={14} />
               <span className="override-label">Emergency All-Red Lock</span>
               <span className="override-status-tag font-mono">{forcedRedApproaches.length === 4 ? 'ALL LOCKED' : 'FREEZE'}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`btn-override-approach ${liveOverride && liveOverride.active ? 'locked-red' : ''}`}
+              style={{ border: '1px solid rgba(239, 68, 68, 0.4)', background: liveOverride && liveOverride.active ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.05)' }}
+              onClick={() => setIsLiveModalOpen(true)}
+              title="Police Command: Enforce live physical traffic signal change"
+            >
+              <Radio size={14} className={liveOverride && liveOverride.active ? "text-red animate-pulse" : "text-red"} />
+              <span className="override-label">Police Live Signal Light</span>
+              <span className="override-status-tag font-mono" style={{ color: '#ef4444' }}>
+                {liveOverride && liveOverride.active ? 'OVERRIDE ON' : 'MANUAL'}
+              </span>
             </button>
           </div>
         </div>
@@ -923,6 +1014,15 @@ export default function SignalSimulator({
           ? (sim?.rationale || recommendation?.rationale || 'Ready to run single intersection simulation.')
           : (corridorSim?.rationale || 'Ready to run 4-way multi-junction city network simulation.')}
       </p>
+
+      {/* LIVE PHYSICAL SIGNAL OVERRIDE MODAL */}
+      <ManualSignalModal
+        isOpen={isLiveModalOpen}
+        junctionId={activeTargetJunctionId}
+        currentOverride={liveOverride}
+        onClose={() => setIsLiveModalOpen(false)}
+        onOverrideApplied={handleOverrideApplied}
+      />
     </section>
   );
 }

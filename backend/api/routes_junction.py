@@ -10,14 +10,23 @@ from backend.models.traffic_schemas import (
     SignalSimulationResult,
     CorridorSimulationRequest,
     CorridorSimulationResult,
+    ManualSignalOverrideRequest,
+    ManualSignalOverrideResponse,
 )
 from backend.db.repositories.junction_repo import junction_repo
 from backend.db.repositories.traffic_repo import traffic_repo
 from backend.core.analytics.junction_aggregator import JunctionAggregator
 from backend.core.control.adaptive_signal import AdaptiveSignalController
 from backend.core.control.signal_simulation import TrafficSimulator, CorridorTrafficSimulator
+from backend.core.control.manual_override_manager import manual_override_manager
 
 router = APIRouter(prefix="/api/junctions", tags=["Junctions"])
+
+@router.get("/active-signal-overrides", response_model=dict)
+def get_all_active_signal_overrides():
+    """Retrieve all active police manual signal light overrides across the metropolitan network."""
+    overrides = manual_override_manager.list_active_overrides()
+    return {k: v.model_dump(mode="json") for k, v in overrides.items()}
 
 @router.get("", response_model=list[dict])
 def list_junctions(city: Optional[str] = Query(None, description="Filter junctions by city")):
@@ -100,3 +109,32 @@ def simulate_corridor_recommendation(payload: CorridorSimulationRequest):
         forced_red=forced_red_dict,
         horizon=payload.horizon_seconds,
     )
+
+@router.post("/{junction_id}/signal-override", response_model=ManualSignalOverrideResponse)
+def set_manual_signal_override(junction_id: str, payload: ManualSignalOverrideRequest):
+    """
+    Apply a manual police emergency signal light override on a junction.
+    Enforces EMERGENCY_ALL_RED, HOLD_RED_APPROACH, or FORCED_PHASE for emergency containment.
+    """
+    if not junction_repo.get_junction(junction_id):
+        raise HTTPException(status_code=404, detail=f"Junction {junction_id} not found")
+    return manual_override_manager.set_override(junction_id, payload)
+
+@router.get("/{junction_id}/signal-override")
+def get_manual_signal_override(junction_id: str):
+    """Get active manual police signal override for a junction, if any."""
+    override = manual_override_manager.get_override(junction_id)
+    if not override:
+        return {"junction_id": junction_id, "active": False, "override_mode": "ADAPTIVE_AI"}
+    return override.model_dump(mode="json")
+
+@router.delete("/{junction_id}/signal-override")
+def clear_manual_signal_override(junction_id: str):
+    """Clear manual police signal override and restore automated AI adaptive control."""
+    cleared = manual_override_manager.clear_override(junction_id)
+    return {
+        "junction_id": junction_id,
+        "active": False,
+        "cleared": cleared,
+        "message": "Manual override cleared. Restored to automated AI adaptive signal control."
+    }

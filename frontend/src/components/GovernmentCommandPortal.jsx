@@ -50,6 +50,7 @@ export default function GovernmentCommandPortal({
   const [liveStreams, setLiveStreams] = useState({});
   const [activeAmbulances, setActiveAmbulances] = useState([]);
   const [activeIncidents, setActiveIncidents] = useState([]);
+  const [activeSignalOverrides, setActiveSignalOverrides] = useState({});
   const [loading, setLoading] = useState(false);
 
   const selectedJunctionData = junctions.find((j) => j.junction_id === selectedJunction);
@@ -68,12 +69,14 @@ export default function GovernmentCommandPortal({
   const fetchAllCommandData = async () => {
     try {
       setLoading(true);
-      const [ambList, incList] = await Promise.all([
+      const [ambList, incList, overridesMap] = await Promise.all([
         api.listAmbulances(),
-        api.listIncidents()
+        api.listIncidents(),
+        api.listActiveSignalOverrides().catch(() => ({}))
       ]);
       setActiveAmbulances(ambList.filter(a => a.status !== 'MISSION_ACCOMPLISHED'));
       setActiveIncidents(incList.filter(i => i.status === 'ACTIVE'));
+      setActiveSignalOverrides(overridesMap || {});
 
       const statesObj = {};
       for (const j of junctions) {
@@ -138,6 +141,10 @@ export default function GovernmentCommandPortal({
           <div className="command-stat-box">
             <div className="stat-num font-mono text-red">{activeIncidents.length}</div>
             <div className="stat-lbl">Active Detours</div>
+          </div>
+          <div className="command-stat-box">
+            <div className="stat-num font-mono text-amber">{Object.keys(activeSignalOverrides).length}</div>
+            <div className="stat-lbl">Signal Overrides</div>
           </div>
         </div>
       </div>
@@ -209,12 +216,37 @@ export default function GovernmentCommandPortal({
               </button>
             </div>
 
+            {activeIncidents.length > 0 && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', padding: '12px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <AlertTriangle className="text-red animate-pulse" size={20} />
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#f87171' }}>
+                      {activeIncidents.length} Emergency Hazard(s) Reported to Traffic Police Command
+                    </strong>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      Officers can manually override signal lights (Lock RED, freeze intersection, or force green evacuation corridor).
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  className="btn-danger"
+                  onClick={() => setGovActiveTab('incidents')}
+                  style={{ fontSize: '0.78rem', padding: '7px 16px' }}
+                >
+                  <Radio size={14} /> Open Incident Operations &amp; Signal Controls →
+                </button>
+              </div>
+            )}
+
             <div className="junction-matrix-grid">
               {junctions.map((j) => {
                 const st = junctionStates[j.junction_id];
                 const isSelected = selectedJunction === j.junction_id;
                 const hasAmbulance = activeAmbulances.some(a => a.route_corridor.some(n => n.junction_id === j.junction_id));
                 const hasIncident = activeIncidents.some(i => i.junction_id === j.junction_id);
+                const hasOverride = Boolean(activeSignalOverrides[j.junction_id]);
 
                 return (
                   <div 
@@ -227,6 +259,7 @@ export default function GovernmentCommandPortal({
                         <span className="j-badge font-mono">{j.junction_id}</span>
                         <strong className="j-name">{j.name}</strong>
                       </div>
+                      {hasOverride && <span className="beacon-pill-inc" style={{ background: '#ef4444' }}>🚨 POLICE OVERRIDE</span>}
                       {hasAmbulance && <span className="beacon-pill-amb">⚡ GREEN WAVE</span>}
                       {hasIncident && <span className="beacon-pill-inc">⚠️ DETOUR</span>}
                     </div>
@@ -393,6 +426,7 @@ export default function GovernmentCommandPortal({
             junctions={junctions}
             onSelectJunction={onSelectJunction}
             refreshKey={analyticsRefresh} 
+            onRefresh={fetchAllCommandData}
           />
         </div>
       )}

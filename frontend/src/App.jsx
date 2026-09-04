@@ -6,12 +6,15 @@ import PublicCitizenPortal from './components/PublicCitizenPortal';
 import HospitalEmergencyPortal from './components/HospitalEmergencyPortal';
 import GovernmentCommandPortal from './components/GovernmentCommandPortal';
 import IncidentReportingModal from './components/IncidentReportingModal';
+import AuthLoginModal from './components/AuthLoginModal';
 import { api } from './services/api';
 
 export default function App() {
   // Role & Gateway State: 'GATEWAY' | 'PUBLIC_USER' | 'HOSPITAL_DISPATCH' | 'GOVERNMENT_OFFICIAL'
   const [currentRole, setCurrentRole] = useState('GATEWAY');
   const [userSession, setUserSession] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authTargetRole, setAuthTargetRole] = useState(null);
 
   // Main Traffic Data & Telemetry
   const [junctions, setJunctions] = useState([]);
@@ -97,6 +100,31 @@ export default function App() {
     setAnalyticsRefresh((c) => c + 1);
   };
 
+  const handleSelectPortal = (roleKey) => {
+    if (roleKey === 'GATEWAY') {
+      setCurrentRole('GATEWAY');
+      return;
+    }
+    if (roleKey === 'PUBLIC_USER') {
+      setCurrentRole('PUBLIC_USER');
+      return;
+    }
+    // Protected roles: check if current session matches the requested role
+    if (userSession && userSession.role === roleKey) {
+      setCurrentRole(roleKey);
+      return;
+    }
+    // Otherwise, trigger the dummy login authentication modal
+    setAuthTargetRole(roleKey);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (session, role) => {
+    setUserSession(session);
+    setCurrentRole(role);
+    setIsAuthModalOpen(false);
+  };
+
   const handleLogout = () => {
     setUserSession(null);
     setCurrentRole('GATEWAY');
@@ -112,7 +140,7 @@ export default function App() {
       {/* RENDER VIEW 0: FRONT LANDING PORTAL GATEWAY */}
       {currentRole === 'GATEWAY' && (
         <PortalLandingPage 
-          onSelectPortal={(role) => setCurrentRole(role)}
+          onSelectPortal={handleSelectPortal}
         />
       )}
 
@@ -121,9 +149,8 @@ export default function App() {
         <>
           <RoleAuthHeader 
             currentRole={currentRole}
-            onRoleChange={setCurrentRole}
+            onRoleChange={handleSelectPortal}
             userSession={userSession}
-            onLoginSuccess={setUserSession}
             onLogout={handleLogout}
           />
 
@@ -189,6 +216,14 @@ export default function App() {
           fetchJunctionState(selectedJunction);
           setAnalyticsRefresh(c => c + 1);
         }}
+      />
+
+      {/* DUMMY LOGIN AUTHENTICATION POPUP MODAL */}
+      <AuthLoginModal 
+        isOpen={isAuthModalOpen}
+        targetRole={authTargetRole}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

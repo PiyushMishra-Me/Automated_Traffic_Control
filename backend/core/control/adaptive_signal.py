@@ -88,7 +88,51 @@ class AdaptiveSignalController:
         yellow_duration = int(round(4 + weather.adjustments.extra_yellow_seconds))
         all_red_duration = int(round(2 + weather.adjustments.extra_all_red_seconds))
 
-        if preemption.is_preempted and preemption.preempted_approach:
+        # Check for active police manual override
+        from backend.core.control.manual_override_manager import manual_override_manager
+        police_override = manual_override_manager.get_override(junction_state.junction_id)
+        manual_override_active = False
+        manual_override_details = None
+
+        if police_override and police_override.active:
+            manual_override_active = True
+            manual_override_details = police_override.model_dump(mode="json")
+            forced_app_names = [a.value if hasattr(a, "value") else str(a) for a in police_override.forced_red_approaches]
+            blocked_approaches.update(forced_app_names)
+
+            if police_override.override_mode == "EMERGENCY_ALL_RED" or police_override.phase == SignalPhaseEnum.ALL_RED:
+                phase = SignalPhaseEnum.ALL_RED
+                green_seconds = 0
+                rationale = f"POLICE MANUAL OVERRIDE: Emergency All-Red Freeze ({police_override.reason}) authorized by {police_override.authorized_by}."
+                north_south = 0.0
+                east_west = 0.0
+            elif police_override.phase in [SignalPhaseEnum.NORTH_SOUTH_GREEN, SignalPhaseEnum.EAST_WEST_GREEN]:
+                phase = police_override.phase
+                green_seconds = 60
+                rationale = f"POLICE MANUAL OVERRIDE: Forced {phase.value} clearance corridor ({police_override.reason}) by {police_override.authorized_by}."
+                north_south = 100.0 if phase == SignalPhaseEnum.NORTH_SOUTH_GREEN else 0.0
+                east_west = 100.0 if phase == SignalPhaseEnum.EAST_WEST_GREEN else 0.0
+            else:
+                # Directional red lock on specific approaches
+                north_score = 0.0 if "NORTH" in forced_app_names else cls._score(junction_state.north)
+                south_score = 0.0 if "SOUTH" in forced_app_names else cls._score(junction_state.south)
+                east_score = 0.0 if "EAST" in forced_app_names else cls._score(junction_state.east)
+                west_score = 0.0 if "WEST" in forced_app_names else cls._score(junction_state.west)
+
+                north_south = round(north_score + south_score, 2)
+                east_west = round(east_score + west_score, 2)
+
+                if north_south >= east_west and north_south > 0:
+                    phase = SignalPhaseEnum.NORTH_SOUTH_GREEN
+                    green_seconds = 45
+                elif east_west > 0:
+                    phase = SignalPhaseEnum.EAST_WEST_GREEN
+                    green_seconds = 45
+                else:
+                    phase = SignalPhaseEnum.ALL_RED
+                    green_seconds = 0
+                rationale = f"POLICE MANUAL OVERRIDE: Approaches [{', '.join(forced_app_names)}] locked to RED ({police_override.reason})."
+        elif preemption.is_preempted and preemption.preempted_approach:
             # Emergency Ambulance Green Wave Override
             if preemption.preempted_approach in [ApproachEnum.NORTH, ApproachEnum.SOUTH]:
                 phase = SignalPhaseEnum.NORTH_SOUTH_GREEN
@@ -137,7 +181,12 @@ class AdaptiveSignalController:
                 )
 
         alerts = cls._alerts(junction_state, active_incidents, weather)
-        if preemption.is_preempted:
+        if manual_override_active and police_override:
+            alerts.insert(0, TrafficAlert(
+                severity=AlertSeverityEnum.CRITICAL,
+                message=f"POLICE MANUAL OVERRIDE: {police_override.reason} (Authorized by {police_override.authorized_by})"
+            ))
+        elif preemption.is_preempted:
             alerts.insert(0, TrafficAlert(
                 severity=AlertSeverityEnum.CRITICAL,
                 message=f"EMERGENCY AMBULANCE CORRIDOR: {preemption.advisory}"
@@ -152,5 +201,7 @@ class AdaptiveSignalController:
             north_south_score=north_south,
             east_west_score=east_west,
             rationale=rationale,
-            alerts=alerts
+            alerts=alerts,
+            manual_override_active=manual_override_active,
+            manual_override_details=manual_override_details
         )

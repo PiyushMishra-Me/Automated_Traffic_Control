@@ -73,6 +73,40 @@ export const api = {
     return res.json();
   },
 
+  // Manual Police Emergency Signal Light Overrides
+  async setManualSignalOverride(junctionId, data) {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-override`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to set manual signal override' }));
+      throw new Error(err.detail || 'Failed to set manual signal override');
+    }
+    return res.json();
+  },
+
+  async getManualSignalOverride(junctionId) {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-override`);
+    if (!res.ok) return { junction_id: junctionId, active: false };
+    return res.json();
+  },
+
+  async clearManualSignalOverride(junctionId) {
+    const res = await fetch(`${API_BASE}/junctions/${junctionId}/signal-override`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to clear manual signal override');
+    return res.json();
+  },
+
+  async listActiveSignalOverrides() {
+    const res = await fetch(`${API_BASE}/junctions/active-signal-overrides`);
+    if (!res.ok) return {};
+    return res.json();
+  },
+
   // Videos & Multi-Approach Ingest
   async uploadVideo(junctionId, approach, file) {
     const formData = new FormData();

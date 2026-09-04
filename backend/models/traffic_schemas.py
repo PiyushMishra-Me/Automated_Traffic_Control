@@ -254,10 +254,41 @@ class SignalRecommendation(BaseModel):
     rationale: str
     alerts: List[TrafficAlert] = Field(default_factory=list)
     is_simulation: bool = True
+    manual_override_active: bool = False
+    manual_override_details: Optional[dict] = None
 
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+
+class ManualSignalOverrideRequest(BaseModel):
+    override_mode: str = Field(
+        "EMERGENCY_ALL_RED",
+        description="Override mode: EMERGENCY_ALL_RED, HOLD_RED_APPROACH, FORCED_PHASE, or RESTORE_ADAPTIVE"
+    )
+    phase: Optional[SignalPhaseEnum] = None
+    forced_red_approaches: List[ApproachEnum] = Field(
+        default_factory=list,
+        description="Specific approaches manually locked at RED light"
+    )
+    incident_id: Optional[str] = None
+    reason: str = Field("Police Emergency Signal Override", description="Official justification / reported hazard")
+    duration_seconds: int = Field(180, ge=10, le=3600, description="Duration in seconds before returning to AI control (0 for indefinite)")
+    authorized_by: str = Field("traffic_command", description="Officer ID or authority issuing override")
+
+
+class ManualSignalOverrideResponse(BaseModel):
+    junction_id: str
+    active: bool
+    override_mode: str
+    phase: Optional[SignalPhaseEnum] = None
+    forced_red_approaches: List[ApproachEnum] = Field(default_factory=list)
+    incident_id: Optional[str] = None
+    reason: str
+    expires_at: Optional[datetime] = None
+    authorized_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class SignalSimulationRequest(BaseModel):

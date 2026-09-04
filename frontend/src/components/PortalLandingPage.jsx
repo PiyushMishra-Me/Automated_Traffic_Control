@@ -66,7 +66,14 @@ export default function PortalLandingPage({ onSelectPortal }) {
           </div>
 
           <div className="portal-card-footer">
-            <button className="btn-portal-enter public-btn">
+            <button 
+              type="button" 
+              className="btn-portal-enter public-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPortal('PUBLIC_USER');
+              }}
+            >
               Enter Public Portal <ArrowRight size={16} />
             </button>
           </div>
@@ -104,7 +111,14 @@ export default function PortalLandingPage({ onSelectPortal }) {
           </div>
 
           <div className="portal-card-footer">
-            <button className="btn-portal-enter emergency-btn">
+            <button 
+              type="button" 
+              className="btn-portal-enter emergency-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPortal('HOSPITAL_DISPATCH');
+              }}
+            >
               Authenticate &amp; Enter Emergency Portal <ArrowRight size={16} />
             </button>
           </div>
@@ -137,7 +151,14 @@ export default function PortalLandingPage({ onSelectPortal }) {
           </div>
 
           <div className="portal-card-footer">
-            <button className="btn-portal-enter gov-btn">
+            <button 
+              type="button" 
+              className="btn-portal-enter gov-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPortal('GOVERNMENT_OFFICIAL');
+              }}
+            >
               Authorize &amp; Enter Command Center <ArrowRight size={16} />
             </button>
           </div>

@@ -1062,6 +1062,47 @@ button,input,select { font:inherit; } button { cursor:pointer; } .app-container 
   background: #dcfce7;
 }
 
+.btn-override-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-override-signal:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  transform: translateY(-1px);
+}
+
+.btn-override-signal.active {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+.override-incident-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
 .btn-icon-toggle {
   background: transparent;
   border: 0;
